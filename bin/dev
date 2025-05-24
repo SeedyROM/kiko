@@ -8,6 +8,38 @@ CLIENT_COLOR='\033[0;94m'    # Light blue
 SERVER_COLOR='\033[0;93m'  # Light yellow
 NC='\033[0m' # No Color
 
+# Check if Rust is installed
+if ! command -v rustc &> /dev/null
+then
+    echo "❌ Rust is not installed. Please install Rust to run this script."
+    exit 1
+fi
+
+# Check if Trunk is installed
+if ! command -v trunk &> /dev/null
+then
+    echo "❌ Trunk is not installed. Please install Trunk to run this script."
+    exit 1
+fi
+
+# Check if Cargo Watch is installed
+if ! command -v cargo-watch &> /dev/null
+then
+    echo "❌ Cargo Watch is not installed. Please install Cargo Watch to run this script."
+    exit 1
+fi
+
+# Print logo
+cat << EOF
+
+,--. ,--.,--.,--.          
+|  .'   /\`--'|  |,-. ,---. 
+|  .   ' ,--.|     /| .-. |
+|  |\   \|  ||  \  \' '-' '
+\`--' '--'\`--'\`--'\`--'\`---' 
+
+EOF
+
 echo "🚀 Starting Kiko development servers..."
 
 # Start backend with colored prefix
