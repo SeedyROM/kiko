@@ -4,9 +4,10 @@
 trap 'kill $(jobs -p)' EXIT
 
 # ANSI color codes
-CLIENT_COLOR='\033[0;94m'    # Light blue
-SERVER_COLOR='\033[0;93m'  # Light yellow
-NC='\033[0m' # No Color
+CLIENT_COLOR='\033[38;5;117m' # Light blue
+SERVER_COLOR='\033[38;5;179m' # Light yellow
+LOGO_COLOR='\033[38;5;189m' # Light magenta
+NC='\033[0m' # Stop color
 
 # Check if Rust is installed
 if ! command -v rustc &> /dev/null
@@ -30,15 +31,13 @@ then
 fi
 
 # Print logo
-cat << EOF
-
-,--. ,--.,--.,--.          
-|  .'   /\`--'|  |,-. ,---. 
-|  .   ' ,--.|     /| .-. |
-|  |\   \|  ||  \  \' '-' '
-\`--' '--'\`--'\`--'\`--'\`---' 
-
-EOF
+echo -e "${LOGO_COLOR}"
+echo "  ,--. ,--.,--.,--.          "
+echo "  |  .'   /\`--'|  |,-. ,---. "
+echo "  |  .   ' ,--.|     /| .-. |"
+echo "  |  |\   \|  ||  \  \' '-' '"
+echo "  \`--' '--'\`--'\`--'\`--'\`---' "
+echo -e "${NC}"
 
 echo "🚀 Starting Kiko development servers..."
 

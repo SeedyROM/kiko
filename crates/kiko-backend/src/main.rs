@@ -62,7 +62,7 @@ mod filters {
 
     use super::handlers;
 
-    /// Setup the routes for the server
+    /// Setup the routes for the server and configure CORS
     pub fn setup_routes() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
     {
         // Accepted CORS origins depending on the environment
