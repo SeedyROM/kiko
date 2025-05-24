@@ -1,0 +1,20 @@
+[package]
+name = "kiko"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = [
+    "fmt",
+    "env-filter",
+    "time",
+] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+thiserror = "2.0.12"
+color-eyre = "0.6.4"
+
+[features]
+default = []
+wasm = []
