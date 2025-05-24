@@ -1,3 +1,11 @@
 [workspace]
 resolver = "2"
 members = ["crates/kiko", "crates/kiko-frontend", "crates/kiko-backend"]
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+overflow-checks = false

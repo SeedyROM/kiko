@@ -4,4 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+gloo-net = "0.6.0"
 kiko = { path = "../kiko" }
+wasm-bindgen = { version = "0.2.100", features = ["serde-serialize"] }
+wasm-bindgen-futures = "0.4.50"
+yew = { version = "0.21.0", features = ["csr"] }

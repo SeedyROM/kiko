@@ -2,8 +2,10 @@ pub use tracing::{debug, error, info, trace, warn};
 
 use crate::errors::LogError;
 
-#[cfg(feature = "wasm")]
-pub fn setup() {
+#[cfg(target_arch = "wasm32")]
+/// Setup the logging system for the application for WASM.
+/// This function will install the [`tracing-web`] logging system.
+pub fn setup() -> Result<(), LogError> {
     use tracing_subscriber::fmt::format::{FmtSpan, Pretty};
     use tracing_subscriber::fmt::time::UtcTime;
     use tracing_subscriber::layer::SubscriberExt;
@@ -21,9 +23,19 @@ pub fn setup() {
         .with(fmt_layer)
         .with(perf_layer)
         .init();
+
+    Ok(())
 }
 
-#[cfg(not(feature = "wasm"))]
+#[cfg(not(target_arch = "wasm32"))]
+/// Setup the logging system for the application.
+/// This function will install the [`color_eyre`] error reporting system
+/// and the [`tracing-subscriber`] logging system.
+/// It will also set the `RUST_LIB_BACKTRACE`` environment variable to `1`
+/// and the `RUST_LOG`` environment variable to `"info"`.
+/// If the environment variables are not set, they will be set to the default values.
+/// If the color_eyre or tracing-subscriber installation fails,
+/// an error will be returned.
 pub fn setup() -> Result<(), LogError> {
     use tracing_subscriber::EnvFilter;
 

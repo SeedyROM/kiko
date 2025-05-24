@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Kill background processes on script exit
+trap 'kill $(jobs -p)' EXIT
+
+# ANSI color codes
+CLIENT_COLOR='\033[0;94m'    # Light blue
+SERVER_COLOR='\033[0;93m'  # Light yellow
+NC='\033[0m' # No Color
+
+echo "🚀 Starting Kiko development servers..."
+
+# Start backend with colored prefix
+echo "📡 Starting backend server..."
+cd crates/kiko-backend
+cargo watch -w src -x run 2>&1 | awk -v prefix="${SERVER_COLOR}[server]${NC}" '{print prefix " " $0; fflush()}' &
+BACKEND_PID=$!
+
+# Wait a moment for backend to start
+sleep 2
+
+# Start frontend with colored prefix
+echo "🎨 Starting frontend server..."
+cd ../kiko-frontend
+trunk serve 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}' &
+FRONTEND_PID=$!
+
+echo "✅ Servers running:"
+echo "   Backend:  http://localhost:3030"
+echo "   Frontend: http://localhost:8080"
+echo ""
+echo "Press Ctrl+C to stop both servers"
+
+# Wait for user interrupt
+wait

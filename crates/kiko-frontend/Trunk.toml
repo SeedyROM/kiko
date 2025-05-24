@@ -1,0 +1,16 @@
+[build]
+target = "public/index.html"
+dist = "dist"
+minify = "on_release"
+
+[[hooks]]
+stage = "build"
+command = "sh"
+command_arguments = [
+    "-c",
+    "npx @tailwindcss/cli -i ./public/tailwind.css -o $TRUNK_STAGING_DIR/tailwind.css --minify",
+]
+
+[watch]
+watch = ["src/", "public/"]
+ignore = ["dist"]
