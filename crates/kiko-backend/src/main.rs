@@ -92,6 +92,7 @@ mod filters {
             .and(warp::get())
             .and_then(handlers::hello)
             .with(cors)
+            .with(warp::trace::request())
     }
 }
 
