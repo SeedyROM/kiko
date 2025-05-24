@@ -22,8 +22,8 @@ Kiko is a Hawaiian word meaning "dot," "point," or "spot" - referring to small m
 
 ### 🏃‍♂️ Running Locally
 
-- ### `./bin/dev`
-    - This runs the entire app in development mode
-    - The frontend is served at `http://localhost:8080` and the backend at `http://localhost:3030` respectively
-    - The frontend and backend are reloaded automatically when you make changes to the code
-        - The frontend is built using `trunk` and the backend is built using `cargo watch`, read the documentation on each tool for more details
+#### `./bin/dev`
+- This runs the entire app in development mode
+- The frontend is served at `http://localhost:8080` and the backend at `http://localhost:3030` respectively
+- The frontend and backend are reloaded automatically when you make changes to the code
+    - The frontend is built using `trunk` and the backend is built using `cargo watch`, read the documentation on each tool for more details

@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-kiko = { path = "../kiko", default-features = false }
+kiko = { path = "../kiko" }
 tokio = { version = "1.45.0", features = ["full"] }
 warp = "0.3.7"
