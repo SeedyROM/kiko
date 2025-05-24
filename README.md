@@ -9,15 +9,18 @@
 A simple but elegant pointing poker app for agile teams
 to estimate user stories and tasks.
 
-## Development
+## 📚 Meaning of Kiko
+Kiko is a Hawaiian word meaning "dot," "point," or "spot" - referring to small marks or punctuation. In the context of this app, it refers to marking estimates for user stories and tasks during agile planning sessions.
 
-### Prerequisite Dependencies
+## 👨‍💻 Development
+
+### 📓 Prerequisite Dependencies
 - [`rust`](https://www.rust-lang.org/tools/install) **(v1.85.0 or later)**
     - [`cargo-watch`](https://crates.io/crates/cargo-watch)
     - [`trunk`](https://crates.io/crates/trunk)
 - [`node`](https://nodejs.org/en/download/) **(v20.0.0 or later) for `npx`**
 
-### Running Locally
+### 🏃‍♂️ Running Locally
 
 - `./bin/dev`
    - This runs the entire app in development mode.
