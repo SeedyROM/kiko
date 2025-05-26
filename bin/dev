@@ -30,6 +30,13 @@ then
     exit 1
 fi
 
+# Check if npm/npx is installed
+if ! command -v npm &> /dev/null && ! command -v npx &> /dev/null
+then
+    echo "❌ npm or npx is not installed. Please install Node.js to run this script."
+    exit 1
+fi
+
 # Print logo
 echo -e "${LOGO_COLOR}"
 echo "  ,--. ,--.,--.,--.          "
