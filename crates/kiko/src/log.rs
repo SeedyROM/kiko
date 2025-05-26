@@ -48,7 +48,7 @@ pub fn setup() -> Result<(), LogError> {
 
     // Get/set the log level
     if std::env::var("RUST_LOG").is_err() {
-        unsafe { std::env::set_var("RUST_LOG", "tracing=info,warp=debug") }
+        unsafe { std::env::set_var("RUST_LOG", "tracing=info,warp=debug,kiko_backend=debug") }
     }
     // Setup tracing and tracing-subscriber
     tracing_subscriber::fmt::fmt()

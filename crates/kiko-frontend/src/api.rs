@@ -1,15 +1,22 @@
-use gloo_net::http::Request;
+use kiko::api::{ApiClient, ApiError, HttpApiClient};
 use kiko::data::HelloWorld;
-use kiko::log;
 
-pub async fn fetch_hello() -> Result<HelloWorld, gloo_net::Error> {
-    log::info!("Fetching hello data from the backend");
-    let response = Request::get("http://localhost:3030/hello") // Back to full URL
-        .send()
-        .await?;
+pub struct Api {
+    client: HttpApiClient,
+}
 
-    let hello: HelloWorld = response.json().await?;
-    log::info!("Received hello data: {:?}", hello);
+impl Api {
+    pub fn new(base_url: &str) -> Self {
+        Api {
+            client: HttpApiClient::new(base_url),
+        }
+    }
 
-    Ok(hello)
+    pub async fn fetch_hello(&self) -> Result<HelloWorld, ApiError> {
+        self.client.get("/hello").await
+    }
+}
+
+pub fn create() -> Api {
+    Api::new("http://localhost:3030") // or your base URL
 }
