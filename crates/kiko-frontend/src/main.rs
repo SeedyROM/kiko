@@ -1,7 +1,5 @@
 mod api;
 
-use std::rc::Rc;
-
 use yew::prelude::*;
 
 use kiko::data::HelloWorld;
@@ -36,7 +34,7 @@ macro_rules! async_callback {
 
 #[function_component(App)]
 fn app() -> Html {
-    let api = use_memo((), |_| Rc::new(api::create()));
+    let api = use_memo((), |_| api::create());
     let hello_data = use_state(|| None::<HelloWorld>);
     let loading = use_state(|| false);
     let error_msg = use_state(|| None::<String>);
