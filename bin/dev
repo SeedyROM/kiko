@@ -1,21 +1,64 @@
 #!/bin/bash
 
+# Print usage information
+usage() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Start Kiko development or release servers.
+
+Options:
+  -r, --release                      Start in release mode (optimized builds)
+  -be, --backend-address=ADDRESS     Set backend server address 
+                                     (default: http://localhost:3030)
+  -fe, --frontend-address=ADDRESS    Set frontend server address
+                                     (default: http://localhost:8080)
+  -h, --help                         Show this help message
+
+Examples:
+  $0                                    Start in development mode
+  $0 --release                          Start in release mode
+  $0 -be=http://0.0.0.0:3030            Start with custom backend address
+  $0 --release -fe=http://0.0.0.0:8080  Release mode with custom frontend
+
+EOF
+}
+
 # Parse command line arguments
 RELEASE_MODE=false
-for arg in "$@"; do
-    case $arg in
-        --release)
+BACKEND_ADDRESS="http://localhost:3030"
+FRONTEND_ADDRESS="http://localhost:8080"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -r|--release)
             RELEASE_MODE=true
             shift
             ;;
-        --help|-h)
-            echo "Usage: $0 [--release]"
-            echo "  --release    Build and run in release mode (optimized)"
+        -be=*|--backend-address=*)
+            BACKEND_ADDRESS="${1#*=}"
+            shift
+            ;;
+        -be|--backend-address)
+            BACKEND_ADDRESS="$2"
+            shift 2
+            ;;
+        -fe=*|--frontend-address=*)
+            FRONTEND_ADDRESS="${1#*=}"
+            shift
+            ;;
+        -fe|--frontend-address)
+            FRONTEND_ADDRESS="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
             exit 0
             ;;
         *)
-            echo "Unknown argument: $arg"
-            echo "Use --help for usage information"
+            echo "Error: Unknown argument '$1'"
+            echo
+            usage
             exit 1
             ;;
     esac
@@ -36,7 +79,7 @@ NC='\033[0m' # Stop color
 check_backend_health() {
     local max_attempts=60
     local attempt=0
-    local backend_url="http://localhost:3030"
+    local backend_url="${BACKEND_ADDRESS}"
     
     while [ $attempt -lt $max_attempts ]; do
         # Try to connect to the backend (adjust the endpoint as needed)
@@ -92,8 +135,8 @@ echo "  |  |\   \|  ||  \  \' '-' '"
 echo "  \`--' '--'\`--'\`--'\`--'\`---' "
 echo -e "${NC}"
 
-echo "   📡 Backend:  http://localhost:3030"
-echo "   🎨 Frontend: http://localhost:8080"
+echo "   📡 Backend:  ${BACKEND_ADDRESS}"
+echo "   🎨 Frontend: ${FRONTEND_ADDRESS}"
 echo -e "\nPress Ctrl+C to stop both servers\n"
 
 if [ "$RELEASE_MODE" = true ]; then
