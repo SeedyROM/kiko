@@ -83,10 +83,7 @@ fn cors_layer() -> CorsLayer {
             .allow_methods([Method::GET, Method::POST])
     } else {
         // Production CORS - replace with specific origins
-        CorsLayer::new()
-            .allow_origin(vec![])
-            .allow_headers([header::CONTENT_TYPE])
-            .allow_methods([Method::GET, Method::POST])
+        CorsLayer::permissive()
     }
 }
 
