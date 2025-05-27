@@ -1,4 +1,10 @@
+use axum::{
+    Router,
+    http::{Method, header},
+    routing::get,
+};
 use tokio::signal;
+use tower_http::cors::CorsLayer;
 
 use kiko::errors::Report;
 use kiko::log;
@@ -9,20 +15,19 @@ async fn main() -> Result<(), Report> {
     kiko::log::setup()?;
 
     // Setup the routes
-    let routes = filters::setup_routes();
+    let app = setup_routes();
 
     // Setup the server
-    let (addr, server) =
-        warp::serve(routes).bind_with_graceful_shutdown(([127, 0, 0, 1], 3030), shutdown_signal());
-    log::info!("Starting server on http://{}", addr);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3030").await?;
+    log::info!("Starting server on http://{}", listener.local_addr()?);
     log::info!("Press Ctrl+C to stop the server");
 
-    // Start the server
-    server.await;
+    // Start the server with graceful shutdown
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
-    // Wait for the shutdown signal
     log::info!("Shutting down server");
-
     Ok(())
 }
 
@@ -53,67 +58,49 @@ async fn shutdown_signal() {
     log::info!("Signal received, starting graceful shutdown");
 }
 
-mod filters {
-    use super::handlers;
-    use warp::{Filter, filters};
+fn setup_routes() -> Router {
+    let api_routes = Router::new().route("/hello", get(handlers::v1::hello));
 
-    fn cors() -> filters::cors::Builder {
-        let origins = if cfg!(debug_assertions) {
-            let dev_ports = vec![3000, 8000, 8080, 8081, 5173];
-            let mut allowed_origins = Vec::new();
-            for port in dev_ports {
-                allowed_origins.push(format!("http://localhost:{}", port));
-                allowed_origins.push(format!("http://127.0.0.1:{}", port));
-            }
-            allowed_origins
-        } else {
-            // Production origins - add your domains here
-            vec![]
-        };
+    Router::new()
+        .nest("/api/v1", api_routes)
+        .layer(cors_layer())
+        .layer(tower_http::trace::TraceLayer::new_for_http())
+}
 
-        warp::cors()
-            .allow_origins(origins.iter().map(|s| s.as_str()))
-            .allow_headers(vec!["content-type"])
-            .allow_methods(vec!["GET", "POST"])
-    }
+fn cors_layer() -> CorsLayer {
+    if cfg!(debug_assertions) {
+        let dev_ports = vec![3000, 8000, 8080, 8081, 5173];
+        let mut origins = Vec::new();
 
-    // Helper function to create the base API path
-    fn api_v1() -> impl Filter<Extract = (), Error = warp::Rejection> + Clone {
-        warp::path!("api" / "v1")
-    }
+        for port in dev_ports {
+            origins.push(format!("http://localhost:{}", port).parse().unwrap());
+            origins.push(format!("http://127.0.0.1:{}", port).parse().unwrap());
+        }
 
-    // Individual route definitions
-    fn hello_route() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        api_v1()
-            .and(warp::path("hello"))
-            .and(warp::get())
-            .and_then(handlers::v1::hello)
-    }
-
-    /// Setup the routes for the server and configure CORS
-    /// Setup the routes for the server and configure CORS
-    pub fn setup_routes()
-    -> impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        let routes = hello_route()
-            // Add more routes here with .or()
-            // .or(another_route())
-            ;
-
-        routes.with(cors()).with(warp::trace::request())
+        CorsLayer::new()
+            .allow_origin(origins)
+            .allow_headers([header::CONTENT_TYPE])
+            .allow_methods([Method::GET, Method::POST])
+    } else {
+        // Production CORS - replace with specific origins
+        CorsLayer::new()
+            .allow_origin(vec![])
+            .allow_headers([header::CONTENT_TYPE])
+            .allow_methods([Method::GET, Method::POST])
     }
 }
 
 mod handlers {
     pub mod v1 {
+        use axum::response::Json;
         use kiko::data::HelloWorld;
-        use std::convert::Infallible;
 
         /// Handle the /hello route
-        pub async fn hello() -> Result<impl warp::Reply, Infallible> {
+        pub async fn hello() -> Json<HelloWorld> {
             let response = HelloWorld {
                 message: "Hello, from the backend baby!".to_string(),
             };
-            Ok(warp::reply::json(&response))
+            Json(response)
         }
     }
 }
