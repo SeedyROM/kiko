@@ -18,5 +18,5 @@ impl Api {
 }
 
 pub fn create() -> Api {
-    Api::new("http://localhost:3030") // or your base URL
+    Api::new("http://localhost:3030/api/v1") // or your base URL
 }
