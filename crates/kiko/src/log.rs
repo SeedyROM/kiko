@@ -1,3 +1,7 @@
+//! Logging module for the kiko project.
+//!
+//! This module provides a unified logging setup for both the frontend (WASM) and backend (native).
+
 pub use tracing::{debug, error, info, trace, warn};
 
 use crate::errors::LogError;

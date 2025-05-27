@@ -58,6 +58,7 @@ async fn shutdown_signal() {
     log::info!("Signal received, starting graceful shutdown");
 }
 
+/// Setup the application routes
 fn setup_routes() -> Router {
     let api_routes = Router::new().route("/hello", get(handlers::v1::hello));
 
@@ -67,6 +68,10 @@ fn setup_routes() -> Router {
         .layer(tower_http::trace::TraceLayer::new_for_http())
 }
 
+/// Setup CORS layer
+/// This function configures CORS settings based on the environment.
+/// In debug mode, it allows requests from specific local development ports.
+/// In production, it allows all origins (permissive).
 fn cors_layer() -> CorsLayer {
     if cfg!(debug_assertions) {
         let dev_ports = vec![3000, 8000, 8080, 8081, 5173];
@@ -87,8 +92,10 @@ fn cors_layer() -> CorsLayer {
     }
 }
 
-mod handlers {
+pub mod handlers {
+    //! Handlers for the API routes
     pub mod v1 {
+        //! Version 1 of the API handlers
         use axum::response::Json;
         use kiko::data::HelloWorld;
 
