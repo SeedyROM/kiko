@@ -32,7 +32,7 @@ fn app() -> Html {
             <h1 class="text-2xl font-bold mb-4">{ "Kiko Pointing Poker" }</h1>
 
             <button
-                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                 onclick={fetch_data}
                 disabled={*loading}
             >

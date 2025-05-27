@@ -1,0 +1,8 @@
+# robots.txt for Kiko project
+
+# Allow all web crawlers to access all content by default
+User-agent: *
+Allow: /
+
+# Disallow crawling CSS
+Disallow: /*.css$
