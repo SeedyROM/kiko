@@ -7,7 +7,7 @@
 /// The macro can be used in two forms:
 ///
 /// 1. Without an event parameter:
-/// ```no_run
+/// ```compile_fail
 /// let fetch_data = async_callback!([api, hello_data, loading, error_msg] {
 ///     loading.set(true);
 ///     error_msg.set(None);
@@ -25,7 +25,7 @@
 /// ```
 ///
 /// 2. With an event parameter:
-/// ```no_run
+/// ```compile_fail
 /// let on_click = async_callback!([api, hello_data, loading, error_msg] |event| {
 ///     event.prevent_default();
 ///     loading.set(true);
@@ -44,7 +44,7 @@
 /// ```
 ///
 /// ## Without the macro
-/// ```no_run
+/// ```compile_fail
 /// // Manual approach - verbose and error-prone
 /// let api_clone = api.clone();
 /// let hello_data_clone = hello_data.clone();

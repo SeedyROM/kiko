@@ -1,3 +1,4 @@
+//! Shared error types and utilities for the kiko project.
 pub use color_eyre::Report;
 
 #[derive(Debug, thiserror::Error)]
