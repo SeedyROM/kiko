@@ -32,32 +32,55 @@ SERVER_COLOR='\033[38;5;179m' # Light yellow
 LOGO_COLOR='\033[38;5;189m' # Light magenta
 NC='\033[0m' # Stop color
 
-# Check if Rust is installed
-if ! command -v rustc &> /dev/null
-then
+# Function to check if backend is ready
+check_backend_health() {
+    local max_attempts=60
+    local attempt=0
+    local backend_url="http://localhost:3030"
+    
+    while [ $attempt -lt $max_attempts ]; do
+        # Try to connect to the backend (adjust the endpoint as needed)
+        if curl -s -f "$backend_url/health" >/dev/null 2>&1 || \
+           curl -s -f "$backend_url" >/dev/null 2>&1 || \
+           nc -z localhost 3030 >/dev/null 2>&1; then
+            return 0
+        fi
+        
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    
+    echo -e "\n${LOGO_COLOR}❌ Backend failed to start within 120 seconds${NC}"
+    return 1
+}
+
+# Check if required tools are installed
+if ! command -v rustc &> /dev/null; then
     echo "❌ Rust is not installed. Please install Rust to run this script."
     exit 1
 fi
 
-# Check if Trunk is installed
-if ! command -v trunk &> /dev/null
-then
+if ! command -v trunk &> /dev/null; then
     echo "❌ Trunk is not installed. Please install Trunk to run this script."
     exit 1
 fi
 
-# Check if Cargo Watch is installed (only needed for dev mode)
-if [ "$RELEASE_MODE" = false ] && ! command -v cargo-watch &> /dev/null
-then
+if [ "$RELEASE_MODE" = false ] && ! command -v cargo-watch &> /dev/null; then
     echo "❌ Cargo Watch is not installed. Please install Cargo Watch to run this script."
     exit 1
 fi
 
-# Check if npm/npx is installed
-if ! command -v npm &> /dev/null && ! command -v npx &> /dev/null
-then
+if ! command -v npm &> /dev/null && ! command -v npx &> /dev/null; then
     echo "❌ npm or npx is not installed. Please install Node.js to run this script."
     exit 1
+fi
+
+# Check if curl or nc is available for health checks
+if ! command -v curl &> /dev/null && ! command -v nc &> /dev/null; then
+    echo "⚠️  Warning: Neither curl nor nc found. Backend health check will be basic."
+    HEALTH_CHECK_AVAILABLE=false
+else
+    HEALTH_CHECK_AVAILABLE=true
 fi
 
 # Print logo
@@ -74,21 +97,13 @@ echo "   🎨 Frontend: http://localhost:8080"
 echo -e "\nPress Ctrl+C to stop both servers\n"
 
 if [ "$RELEASE_MODE" = true ]; then
-    echo "🚀 Starting Kiko servers in RELEASE mode..."
+    echo "🚀 Starting Kiko release servers..."
     
     # Start backend in release mode
     echo "📡 Starting backend server (release)..."
     cd crates/kiko-backend
     cargo run --release 2>&1 | awk -v prefix="${SERVER_COLOR}[server]${NC}" '{print prefix " " $0; fflush()}' &
     BACKEND_PID=$!
-
-    sleep 3 # Give backend time to start
-    
-    # Start frontend in release mode
-    echo "🎨 Starting frontend server (release)..."
-    cd ../kiko-frontend
-    trunk serve --release 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}' &
-    FRONTEND_PID=$!
 else
     echo "🚀 Starting Kiko development servers..."
     
@@ -97,10 +112,27 @@ else
     cd crates/kiko-backend
     cargo watch -w src -x run 2>&1 | awk -v prefix="${SERVER_COLOR}[server]${NC}" '{print prefix " " $0; fflush()}' &
     BACKEND_PID=$!
+fi
 
-    sleep 3 # Give backend time to start
-        
-    # Start frontend in dev mode
+# Wait for backend to be ready
+if [ "$HEALTH_CHECK_AVAILABLE" = true ]; then
+    if ! check_backend_health; then
+        echo "❌ Failed to start backend. Exiting..."
+        exit 1
+    fi
+else
+    # Fallback to simple sleep if health check tools aren't available
+    echo -e "${LOGO_COLOR}⏳ Waiting 5 seconds for backend to start...${NC}"
+    sleep 5
+fi
+
+# Start frontend
+if [ "$RELEASE_MODE" = true ]; then
+    echo "🎨 Starting frontend server (release)..."
+    cd ../kiko-frontend
+    trunk serve --release 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}' &
+    FRONTEND_PID=$!
+else
     echo "🎨 Starting frontend server (dev)..."
     cd ../kiko-frontend
     trunk serve 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}' &
