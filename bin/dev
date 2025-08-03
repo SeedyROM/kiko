@@ -84,14 +84,14 @@ cleanup() {
     if [ -n "$BACKEND_PID" ]; then
         echo -e "${LOGO_COLOR}  Stopping backend (PID: $BACKEND_PID)...${NC}"
         kill -TERM "$BACKEND_PID" 2>/dev/null
-        sleep 2
+        sleep 0.01
         kill -KILL "$BACKEND_PID" 2>/dev/null
     fi
     
     if [ -n "$FRONTEND_PID" ]; then
         echo -e "${LOGO_COLOR}  Stopping frontend (PID: $FRONTEND_PID)...${NC}"
         kill -TERM "$FRONTEND_PID" 2>/dev/null
-        sleep 2
+        sleep 0.01
         kill -KILL "$FRONTEND_PID" 2>/dev/null
     fi
     
@@ -105,7 +105,7 @@ cleanup() {
         local pids=$(jobs -p)
         if [ -n "$pids" ]; then
             kill -TERM $pids 2>/dev/null
-            sleep 1
+            sleep 0.01
             kill -KILL $pids 2>/dev/null
         fi
     fi
@@ -224,7 +224,6 @@ check_backend_health() {
         fi
         
         attempt=$((attempt + 1))
-        printf "."
         sleep 3
     done
     

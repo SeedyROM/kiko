@@ -22,7 +22,7 @@ fn app() -> Html {
             }
             Err(err) => {
                 loading.set(false);
-                error_msg.set(Some(format!("Error fetching data: {}", err)));
+                error_msg.set(Some(format!("Error fetching data: {err}")));
             }
         }
     });
