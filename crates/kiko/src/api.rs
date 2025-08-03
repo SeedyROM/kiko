@@ -117,10 +117,10 @@ impl From<ApiHeaders> for gloo_net::http::Headers {
 async fn handle_response_status(response: Response, endpoint: &str) -> ApiResult<Response> {
     match response.status() {
         200..=299 => Ok(response),
-        400 => Err(ApiError::BadRequest(format!("Bad request to {}", endpoint))),
+        400 => Err(ApiError::BadRequest(format!("Bad request to {endpoint}"))),
         401 => Err(ApiError::UnauthorizedAccess),
         403 => Err(ApiError::ForbiddenAccess),
-        404 => Err(ApiError::NotFound(format!("{} not found", endpoint))),
+        404 => Err(ApiError::NotFound(format!("{endpoint} not found"))),
         500..=599 => Err(ApiError::InternalServerError),
         status => Err(ApiError::UnexpectedStatusCode(status)),
     }

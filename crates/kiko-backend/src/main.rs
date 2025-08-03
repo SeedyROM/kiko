@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Router,
     http::{Method, header},
-    routing::post, // Removed unused 'get' import
+    routing::{get, post},
 };
 use tokio::signal;
 use tower_http::cors::CorsLayer;
@@ -72,6 +72,7 @@ async fn shutdown_signal() {
 /// Setup the application routes
 fn setup_routes(app_state: Arc<AppState>) -> Router {
     let api_routes = Router::new()
+        .route("/hello", get(handlers::v1::hello::get))
         .route("/session", post(handlers::v1::session::create))
         .with_state(app_state);
 
@@ -91,8 +92,8 @@ fn cors_layer() -> CorsLayer {
         let mut origins = Vec::new();
 
         for port in dev_ports {
-            origins.push(format!("http://localhost:{}", port).parse().unwrap());
-            origins.push(format!("http://127.0.0.1:{}", port).parse().unwrap());
+            origins.push(format!("http://localhost:{port}").parse().unwrap());
+            origins.push(format!("http://127.0.0.1:{port}").parse().unwrap());
         }
 
         CorsLayer::new()
@@ -108,6 +109,19 @@ fn cors_layer() -> CorsLayer {
 pub mod handlers {
     //! Handlers for the API routes
     pub mod v1 {
+        pub mod hello {
+            use axum::Json;
+            use kiko::serde_json::{json, Value};
+
+            /// Handler to return a simple hello message
+            pub async fn get() -> Json<Value> {
+                Json(json!({
+                    "message": "Hello from Kiko API!",
+                    "status": "ok"
+                }))
+            }
+        }
+
         pub mod session {
             use axum::Json;
             use kiko::data::{CreateSessionBody, Session};
