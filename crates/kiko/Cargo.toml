@@ -16,6 +16,7 @@ thiserror = "2.0.12"
 color-eyre = "0.6.4"
 gloo-net = "0.6.0"
 async-trait = "0.1.88"
+tiny_id = "0.1.6"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tracing-web = "0.1.3"

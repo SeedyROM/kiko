@@ -64,10 +64,65 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Kill background processes on script exit
-trap 'kill $(jobs -p) 2>/dev/null' EXIT
-trap 'kill $(jobs -p) 2>/dev/null' INT
-trap 'kill $(jobs -p) 2>/dev/null' TERM
+# Store original directory
+ORIGINAL_DIR=$(pwd)
+
+# Flag to prevent duplicate cleanup
+CLEANUP_DONE=false
+
+# Cleanup function to kill background processes and return to original directory
+cleanup() {
+    # Prevent duplicate execution
+    if [ "$CLEANUP_DONE" = true ]; then
+        return 0
+    fi
+    CLEANUP_DONE=true
+    
+    echo -e "\n${LOGO_COLOR}🛑 Shutting down servers...${NC}"
+    
+    # Kill specific PIDs if we have them
+    if [ -n "$BACKEND_PID" ]; then
+        echo -e "${LOGO_COLOR}  Stopping backend (PID: $BACKEND_PID)...${NC}"
+        kill -TERM "$BACKEND_PID" 2>/dev/null
+        sleep 2
+        kill -KILL "$BACKEND_PID" 2>/dev/null
+    fi
+    
+    if [ -n "$FRONTEND_PID" ]; then
+        echo -e "${LOGO_COLOR}  Stopping frontend (PID: $FRONTEND_PID)...${NC}"
+        kill -TERM "$FRONTEND_PID" 2>/dev/null
+        sleep 2
+        kill -KILL "$FRONTEND_PID" 2>/dev/null
+    fi
+    
+    # Kill any remaining cargo/trunk processes
+    pkill -f "cargo.*watch.*run" 2>/dev/null || true
+    pkill -f "trunk.*serve" 2>/dev/null || true
+    pkill -f "kiko-backend" 2>/dev/null || true
+    
+    # Kill all background jobs as fallback
+    if jobs -p > /dev/null 2>&1; then
+        local pids=$(jobs -p)
+        if [ -n "$pids" ]; then
+            kill -TERM $pids 2>/dev/null
+            sleep 1
+            kill -KILL $pids 2>/dev/null
+        fi
+    fi
+    
+    # Clean up temp files
+    rm -f /tmp/kiko_cargo_watch.log 2>/dev/null
+    
+    # Return to original directory
+    cd "$ORIGINAL_DIR"
+    
+    echo -e "${LOGO_COLOR}✅ Cleanup complete${NC}"
+}
+
+# Set up signal handlers
+trap cleanup EXIT
+trap cleanup INT
+trap cleanup TERM
 
 # ANSI color codes
 CLIENT_COLOR='\033[38;5;117m' # Light blue
@@ -75,56 +130,169 @@ SERVER_COLOR='\033[38;5;179m' # Light yellow
 LOGO_COLOR='\033[38;5;189m' # Light magenta
 NC='\033[0m' # Stop color
 
-# Function to check if backend is ready
+# Function to monitor cargo watch for errors and provide helpful feedback
+smart_cargo_watch() {
+    local log_file="/tmp/kiko_cargo_watch.log"
+    local error_count=0
+    local last_error_time=0
+    local build_success_count=0
+    
+    # Start cargo watch and capture output without subshell
+    exec 3< <(cargo watch -w src -x run 2>&1 | tee "$log_file")
+    
+    while IFS= read -r line <&3; do
+        echo -e "${SERVER_COLOR}[server]${NC} $line"
+        
+        # Check for compilation errors
+        if echo "$line" | grep -q -E "error\[E[0-9]+\]|error:|compilation failed|could not compile" && \
+           ! echo "$line" | grep -q -E "warning:|note:|help:"; then
+            
+            current_time=$(date +%s)
+            
+            # Reset error count if it's been a while since last error
+            if [ $((current_time - last_error_time)) -gt 60 ]; then
+                error_count=0
+            fi
+            
+            error_count=$((error_count + 1))
+            last_error_time=$current_time
+            
+            if [ $error_count -eq 1 ]; then
+                echo -e "${SERVER_COLOR}[server]${NC} 🚨 Compilation error detected - backend won't start until fixed"
+            elif [ $error_count -eq 3 ]; then
+                echo -e "${SERVER_COLOR}[server]${NC} 💡 Tip: Fix the compilation errors above and save to trigger rebuild"
+            elif [ $error_count -ge 5 ]; then
+                echo -e "${SERVER_COLOR}[server]${NC} 🔄 Still waiting for error fixes... (Press Ctrl+C to stop)"
+                error_count=0  # Reset to avoid spam
+            fi
+        fi
+        
+        # Check for successful compilation
+        if echo "$line" | grep -q "Finished.*dev.*target"; then
+            if [ $error_count -gt 0 ]; then
+                echo -e "${SERVER_COLOR}[server]${NC} ✅ Compilation successful! Backend should be starting..."
+            fi
+            error_count=0
+            build_success_count=$((build_success_count + 1))
+        fi
+        
+        # Check if the server actually started
+        if echo "$line" | grep -q -E "Server running|Listening on|Started|Rocket has launched"; then
+            echo -e "${SERVER_COLOR}[server]${NC} 🚀 Backend server is now running!"
+        fi
+    done
+    
+    exec 3<&-
+}
+
+# Function to check if backend is ready with better error reporting
 check_backend_health() {
-    local max_attempts=60
+    local max_attempts=20  # Reduced attempts since we have better error handling
     local attempt=0
     local backend_url="${BACKEND_ADDRESS}"
+    local consecutive_failures=0
+    local warned_about_errors=false
+    
+    echo -e "${LOGO_COLOR}⏳ Waiting for backend to be ready...${NC}"
     
     while [ $attempt -lt $max_attempts ]; do
-        # Try to connect to the backend (adjust the endpoint as needed)
+        # Check if backend process is still running
+        if [ -n "$BACKEND_PID" ] && ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+            echo -e "\n${LOGO_COLOR}❌ Backend process died unexpectedly${NC}"
+            return 1
+        fi
+        
+        # Try to connect to the backend
         if curl -s -f "$backend_url/health" >/dev/null 2>&1 || \
            curl -s -f "$backend_url" >/dev/null 2>&1 || \
            nc -z localhost 3030 >/dev/null 2>&1; then
+            echo -e "${LOGO_COLOR}✅ Backend is ready!${NC}"
             return 0
         fi
         
+        consecutive_failures=$((consecutive_failures + 1))
+        
+        # After several failures, provide helpful guidance
+        if [ $consecutive_failures -eq 8 ] && [ "$RELEASE_MODE" = false ] && [ "$warned_about_errors" = false ]; then
+            echo -e "\n${LOGO_COLOR}⚠️  Backend not responding yet...${NC}"
+            echo -e "${LOGO_COLOR}💡 This might be due to:${NC}"
+            echo -e "${LOGO_COLOR}   • Compilation errors (check server output above)${NC}"
+            echo -e "${LOGO_COLOR}   • Slow build process (first build can take longer)${NC}"
+            echo -e "${LOGO_COLOR}   • Missing dependencies${NC}"
+            echo -e "${LOGO_COLOR}🔄 Continuing to wait, or press Ctrl+C to stop...${NC}"
+            warned_about_errors=true
+        fi
+        
         attempt=$((attempt + 1))
-        sleep 2
+        printf "."
+        sleep 3
     done
     
-    echo -e "\n${LOGO_COLOR}❌ Backend failed to start within 120 seconds${NC}"
+    echo -e "\n${LOGO_COLOR}❌ Backend failed to start within 60 seconds${NC}"
+    echo -e "${LOGO_COLOR}💡 Check the server output above for error messages${NC}"
     return 1
 }
 
+# Function to check if a command exists and is executable
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to check directory exists
+check_directory() {
+    local dir="$1"
+    local name="$2"
+    
+    if [ ! -d "$dir" ]; then
+        echo "❌ $name directory not found: $dir"
+        echo "   Make sure you're running this script from the correct location."
+        return 1
+    fi
+    return 0
+}
+
 # Check if required tools are installed
-if ! command -v rustc &> /dev/null; then
+echo "🔍 Checking dependencies..."
+
+if ! command_exists rustc; then
     echo "❌ Rust is not installed. Please install Rust to run this script."
+    echo "   Visit: https://rustup.rs/"
     exit 1
 fi
 
-if ! command -v trunk &> /dev/null; then
+if ! command_exists trunk; then
     echo "❌ Trunk is not installed. Please install Trunk to run this script."
+    echo "   Run: cargo install trunk"
     exit 1
 fi
 
-if [ "$RELEASE_MODE" = false ] && ! command -v cargo-watch &> /dev/null; then
+if [ "$RELEASE_MODE" = false ] && ! command_exists cargo-watch; then
     echo "❌ Cargo Watch is not installed. Please install Cargo Watch to run this script."
+    echo "   Run: cargo install cargo-watch"
     exit 1
 fi
 
-if ! command -v npm &> /dev/null && ! command -v npx &> /dev/null; then
+if ! command_exists npm && ! command_exists npx; then
     echo "❌ npm or npx is not installed. Please install Node.js to run this script."
+    echo "   Visit: https://nodejs.org/"
     exit 1
 fi
 
 # Check if curl or nc is available for health checks
-if ! command -v curl &> /dev/null && ! command -v nc &> /dev/null; then
+if ! command_exists curl && ! command_exists nc; then
     echo "⚠️  Warning: Neither curl nor nc found. Backend health check will be basic."
     HEALTH_CHECK_AVAILABLE=false
 else
     HEALTH_CHECK_AVAILABLE=true
 fi
+
+# Check if required directories exist
+if ! check_directory "crates/kiko-backend" "Backend" || \
+   ! check_directory "crates/kiko-frontend" "Frontend"; then
+    exit 1
+fi
+
+echo "✅ All dependencies found"
 
 # Print logo
 echo -e "${LOGO_COLOR}"
@@ -137,50 +305,131 @@ echo -e "${NC}"
 
 echo "   📡 Backend:  ${BACKEND_ADDRESS}"
 echo "   🎨 Frontend: ${FRONTEND_ADDRESS}"
-echo -e "\nPress Ctrl+C to stop both servers\n"
+echo
+echo -e "${LOGO_COLOR}💡 Development Tips:${NC}"
+echo -e "${LOGO_COLOR}   • Fix compilation errors to restart the backend${NC}"
+echo -e "${LOGO_COLOR}   • Changes auto-reload when you save files${NC}"
+echo -e "${LOGO_COLOR}   • Press Ctrl+C to stop both servers${NC}"
+echo
+
+# Initialize PID variables
+BACKEND_PID=""
+FRONTEND_PID=""
 
 if [ "$RELEASE_MODE" = true ]; then
     echo "🚀 Starting Kiko release servers..."
     
     # Start backend in release mode
     echo "📡 Starting backend server (release)..."
-    cd crates/kiko-backend
-    cargo run --release 2>&1 | awk -v prefix="${SERVER_COLOR}[server]${NC}" '{print prefix " " $0; fflush()}' &
+    cd crates/kiko-backend || {
+        echo "❌ Failed to change to backend directory"
+        exit 1
+    }
+    
+    # Check if Cargo.toml exists
+    if [ ! -f "Cargo.toml" ]; then
+        echo "❌ Backend Cargo.toml not found. Are you in the right directory?"
+        exit 1
+    fi
+    
+    # Start backend with better error handling
+    (cargo run --release 2>&1 | awk -v prefix="${SERVER_COLOR}[server]${NC}" '{print prefix " " $0; fflush()}') &
     BACKEND_PID=$!
+    
+    # Check if cargo command started successfully
+    sleep 2
+    if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+        echo "❌ Failed to start backend process"
+        exit 1
+    fi
 else
     echo "🚀 Starting Kiko development servers..."
     
     # Start backend with watch mode
     echo "📡 Starting backend server (dev watch)..."
-    cd crates/kiko-backend
-    cargo watch -w src -x run 2>&1 | awk -v prefix="${SERVER_COLOR}[server]${NC}" '{print prefix " " $0; fflush()}' &
+    cd crates/kiko-backend || {
+        echo "❌ Failed to change to backend directory"
+        exit 1
+    }
+    
+    # Check if Cargo.toml exists
+    if [ ! -f "Cargo.toml" ]; then
+        echo "❌ Backend Cargo.toml not found. Are you in the right directory?"
+        exit 1
+    fi
+    
+    # Use our smart cargo watch function
+    smart_cargo_watch &
     BACKEND_PID=$!
+    
+    # Check if cargo-watch command started successfully
+    sleep 2
+    if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+        echo "❌ Failed to start backend watch process"
+        exit 1
+    fi
 fi
 
-# Wait for backend to be ready
+# Wait for backend to be ready (with better error handling)
 if [ "$HEALTH_CHECK_AVAILABLE" = true ]; then
     if ! check_backend_health; then
-        echo "❌ Failed to start backend. Exiting..."
+        echo "❌ Failed to start backend. Common solutions:"
+        echo "   • Check for compilation errors in the output above"
+        echo "   • Ensure all dependencies are installed (cargo check)"
+        echo "   • Make sure port 3030 is not already in use"
+        echo "   • Try running 'cargo run' manually in the backend directory"
         exit 1
     fi
 else
     # Fallback to simple sleep if health check tools aren't available
-    echo -e "${LOGO_COLOR}⏳ Waiting 5 seconds for backend to start...${NC}"
-    sleep 5
+    echo -e "${LOGO_COLOR}⏳ Waiting 8 seconds for backend to start...${NC}"
+    sleep 8
+    
+    # Basic check if backend process is still running
+    if [ -n "$BACKEND_PID" ] && ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+        echo "❌ Backend process died during startup"
+        echo "💡 Run the script again or check for compilation errors"
+        exit 1
+    fi
+fi
+
+# Change to frontend directory
+cd "$ORIGINAL_DIR/crates/kiko-frontend" || {
+    echo "❌ Failed to change to frontend directory"
+    exit 1
+}
+
+# Check if frontend files exist
+if [ ! -f "Trunk.toml" ] && [ ! -f "index.html" ]; then
+    echo "❌ Frontend files not found. Are you in the right directory?"
+    echo "   Looking for Trunk.toml or index.html in: $(pwd)"
+    exit 1
 fi
 
 # Start frontend
 if [ "$RELEASE_MODE" = true ]; then
     echo "🎨 Starting frontend server (release)..."
-    cd ../kiko-frontend
-    trunk serve --release 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}' &
+    (trunk serve --release 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}') &
     FRONTEND_PID=$!
 else
     echo "🎨 Starting frontend server (dev)..."
-    cd ../kiko-frontend
-    trunk serve 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}' &
+    (trunk serve 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}') &
     FRONTEND_PID=$!
 fi
+
+# Check if frontend started successfully
+sleep 3
+if [ -n "$FRONTEND_PID" ] && ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
+    echo "❌ Failed to start frontend process"
+    echo "💡 Check if trunk is properly installed: cargo install trunk"
+    exit 1
+fi
+
+echo -e "\n${LOGO_COLOR}🎉 Both servers are running!${NC}"
+echo -e "${LOGO_COLOR}🌐 Backend:  ${BACKEND_ADDRESS}${NC}"
+echo -e "${LOGO_COLOR}🎨 Frontend: ${FRONTEND_ADDRESS}${NC}"
+echo -e "${LOGO_COLOR}📝 Watch mode: Files will auto-reload on save${NC}"
+echo -e "${LOGO_COLOR}🛑 Press Ctrl+C to stop both servers${NC}\n"
 
 # Wait for user interrupt
 wait

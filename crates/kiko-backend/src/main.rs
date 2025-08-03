@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use axum::{
     Router,
     http::{Method, header},
-    routing::get,
+    routing::post, // Removed unused 'get' import
 };
 use tokio::signal;
 use tower_http::cors::CorsLayer;
@@ -9,13 +11,22 @@ use tower_http::cors::CorsLayer;
 use kiko::errors::Report;
 use kiko::log;
 
+struct AppState {
+    // sessions: Arc<Mutex<Sessions>>,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Report> {
     // Setup logging
     kiko::log::setup()?;
 
+    // Add application state
+    let app_state = Arc::new(AppState {
+         // sessions: Arc::new(Mutex::new(Sessions::new())),
+    });
+
     // Setup the routes
-    let app = setup_routes();
+    let app = setup_routes(app_state);
 
     // Setup the server
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3030").await?;
@@ -59,8 +70,10 @@ async fn shutdown_signal() {
 }
 
 /// Setup the application routes
-fn setup_routes() -> Router {
-    let api_routes = Router::new().route("/hello", get(handlers::v1::hello));
+fn setup_routes(app_state: Arc<AppState>) -> Router {
+    let api_routes = Router::new()
+        .route("/session", post(handlers::v1::session::create))
+        .with_state(app_state);
 
     Router::new()
         .nest("/api/v1", api_routes)
@@ -95,16 +108,26 @@ fn cors_layer() -> CorsLayer {
 pub mod handlers {
     //! Handlers for the API routes
     pub mod v1 {
-        //! Version 1 of the API handlers
-        use axum::response::Json;
-        use kiko::data::HelloWorld;
+        pub mod session {
+            use axum::Json;
+            use kiko::data::{CreateSessionBody, Session};
+            // use std::sync::{Arc};
 
-        /// Handle the /hello route
-        pub async fn hello() -> Json<HelloWorld> {
-            let response = HelloWorld {
-                message: "Hello, from the backend baby!".to_string(),
-            };
-            Json(response)
+            /// Handler to create a new session
+            pub async fn create(
+                // State(state): State<Arc<crate::AppState>>,
+                Json(payload): Json<CreateSessionBody>,
+            ) -> Json<Session> {
+                // let CreateSessionBody { name, duration } = payload;
+                // let mut state = state.lock().expect("Failed to lock state");
+                // let sessions = state.sessions.lock().expect("Failed to lock sessions");
+
+                Json(Session::new(
+                    "session_id".to_string(), // Replace with actual session ID generation logic
+                    payload.name,
+                    payload.duration,
+                ))
+            }
         }
     }
 }
