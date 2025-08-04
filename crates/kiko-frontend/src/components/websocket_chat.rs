@@ -1,8 +1,8 @@
+use crate::hooks::{ConnectionState, use_websocket};
 use std::collections::VecDeque;
 use yew::prelude::*;
-use crate::hooks::{use_websocket, ConnectionState};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ChatMessage {
     pub content: String,
     pub timestamp: String,
@@ -16,29 +16,36 @@ pub struct WebSocketChatProps {
 
 #[function_component(WebSocketChat)]
 pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
-    let messages = use_state(|| VecDeque::<ChatMessage>::new());
+    let messages = use_state(VecDeque::<ChatMessage>::new);
     let message_input = use_state(String::new);
     let messages_container_ref = use_node_ref();
 
     // WebSocket hook - pure transport layer
-    let (ws_state, ws_connect, ws_disconnect, ws_send, set_on_message) = 
-        use_websocket(&props.url);
+    let (ws_state, ws_connect, ws_disconnect, ws_send, set_on_message) = use_websocket(&props.url);
 
-    // Set up message handler that updates with current messages state
+    // Auto-connect on mount
+    {
+        let ws_connect = ws_connect.clone();
+        use_effect_with((), move |_| {
+            ws_connect.emit(web_sys::MouseEvent::new("click").unwrap());
+        });
+    }
+
+    // Set up message handler - refreshes callback to avoid stale closures
     {
         let messages = messages.clone();
         let set_on_message = set_on_message.clone();
-        
+
         use_effect(move || {
-            let message_callback = {
+            let message_callback = Callback::from({
                 let messages = messages.clone();
-                Callback::from(move |text: String| {
+                move |text: String| {
                     let chat_msg = ChatMessage {
                         content: text,
                         timestamp: js_sys::Date::new_0().to_iso_string().into(),
                         is_outgoing: false,
                     };
-                    
+
                     messages.set({
                         let mut current_msgs = (*messages).clone();
                         current_msgs.push_back(chat_msg);
@@ -47,9 +54,9 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
                         }
                         current_msgs
                     });
-                })
-            };
-            
+                }
+            });
+
             set_on_message.emit(message_callback);
         });
     }
@@ -58,15 +65,12 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
     {
         let messages_container_ref = messages_container_ref.clone();
         let messages_len = messages.len();
-        
-        use_effect_with(
-            messages_len,
-            move |_| {
-                if let Some(container) = messages_container_ref.cast::<web_sys::HtmlElement>() {
-                    container.set_scroll_top(container.scroll_height());
-                }
-            },
-        );
+
+        use_effect_with(messages_len, move |_| {
+            if let Some(container) = messages_container_ref.cast::<web_sys::HtmlElement>() {
+                container.set_scroll_top(container.scroll_height());
+            }
+        });
     }
 
     // Send message helper
@@ -74,7 +78,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
         let message_input = message_input.clone();
         let messages = messages.clone();
         let ws_send = ws_send.clone();
-        
+
         Callback::from(move |text: String| {
             if !text.is_empty() {
                 // Add to our message history as outgoing
@@ -83,7 +87,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
                     timestamp: js_sys::Date::new_0().to_iso_string().into(),
                     is_outgoing: true,
                 };
-                
+
                 messages.set({
                     let mut current_msgs = (*messages).clone();
                     current_msgs.push_back(chat_msg);
@@ -92,7 +96,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
                     }
                     current_msgs
                 });
-                
+
                 // Send via WebSocket
                 ws_send.emit(text);
                 message_input.set(String::new());
@@ -104,7 +108,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
     let on_send_click = {
         let message_input = message_input.clone();
         let send_message = send_message.clone();
-        
+
         Callback::from(move |_| {
             let msg = (*message_input).clone();
             send_message.emit(msg);
@@ -120,11 +124,11 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
             }
         })
     };
-    
+
     let on_keypress = {
         let message_input = message_input.clone();
         let send_message = send_message.clone();
-        
+
         Callback::from(move |e: KeyboardEvent| {
             if e.key() == "Enter" {
                 let msg = (*message_input).clone();
@@ -136,7 +140,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
     html! {
         <div class="p-4 border border-gray-200 rounded">
             <h2 class="text-xl font-semibold mb-4">{ "WebSocket Connection" }</h2>
-            
+
             // Connection status
             <div class="mb-4">
                 <span class="font-medium">{ "Status: " }</span>
@@ -164,7 +168,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
                 >
                     { "Connect" }
                 </button>
-                
+
                 <button
                     class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
                     onclick={ws_disconnect}
@@ -203,7 +207,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
             }
 
             // Messages display
-            <div 
+            <div
                 ref={messages_container_ref}
                 class="border border-gray-300 rounded p-4 h-64 overflow-y-auto bg-gray-50"
             >
