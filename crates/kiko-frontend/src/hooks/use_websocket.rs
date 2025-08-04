@@ -1,3 +1,8 @@
+//! WebSocket hook for Yew components.
+//!
+//! This module provides a hook for managing WebSocket connections in Yew applications.
+//! It handles connection state, message sending/receiving, and automatic cleanup.
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -9,26 +14,112 @@ use yew::prelude::*;
 
 use kiko::async_callback;
 
+/// Represents the current state of a WebSocket connection.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConnectionState {
+    /// WebSocket is not connected
     Disconnected,
+    /// WebSocket is in the process of connecting
     Connecting,
+    /// WebSocket is connected and ready to send/receive messages
     Connected,
+    /// WebSocket connection failed or encountered an error
     Error(String),
 }
 
+/// Callback type for handling incoming WebSocket messages.
 pub type MessageCallback = Callback<String>;
 
+/// Internal type for managing the WebSocket sender.
 type WebSocketSender = Rc<RefCell<Option<SplitSink<WebSocket, Message>>>>;
 
+/// Handle returned by the `use_websocket` hook, providing control over the WebSocket connection.
 pub struct WebSocketHandle {
+    /// Current connection state
     pub state: ConnectionState,
+    /// Callback to initiate a WebSocket connection
     pub connect: Callback<()>,
+    /// Callback to close the WebSocket connection
     pub disconnect: Callback<()>,
+    /// Callback to send a text message through the WebSocket
     pub send: Callback<String>,
+    /// Callback to set the message handler for incoming messages
     pub set_on_message: Callback<MessageCallback>,
 }
 
+/// A Yew hook for managing WebSocket connections.
+///
+/// This hook provides a complete WebSocket client implementation with automatic
+/// connection management, message handling, and state tracking.
+///
+/// # Arguments
+///
+/// * `url` - The WebSocket URL to connect to (e.g., "ws://localhost:3030/ws")
+///
+/// # Returns
+///
+/// Returns a `WebSocketHandle` with methods to control the connection:
+/// - `state`: Current connection state
+/// - `connect()`: Initiate connection
+/// - `disconnect()`: Close connection
+/// - `send(message)`: Send text message
+/// - `set_on_message(callback)`: Set message handler
+///
+/// # Example
+///
+/// ```rust
+/// use yew::prelude::*;
+/// use crate::hooks::use_websocket;
+///
+/// #[function_component(WebSocketExample)]
+/// fn websocket_example() -> Html {
+///     let ws = use_websocket("ws://localhost:3030/ws");
+///     let messages = use_state(Vec::<String>::new);
+///
+///     // Set up message handler
+///     {
+///         let messages = messages.clone();
+///         use_effect_with((), move |_| {
+///             let messages = messages.clone();
+///             ws.set_on_message.emit(Callback::from(move |msg: String| {
+///                 let mut msgs = (*messages).clone();
+///                 msgs.push(msg);
+///                 messages.set(msgs);
+///             }));
+///         });
+///     }
+///
+///     let on_connect = {
+///         let ws = ws.clone();
+///         Callback::from(move |_| ws.connect.emit(()))
+///     };
+///
+///     let on_send = {
+///         let ws = ws.clone();
+///         Callback::from(move |_| ws.send.emit("Hello WebSocket!".to_string()))
+///     };
+///
+///     html! {
+///         <div>
+///             <p>{ format!("Status: {:?}", ws.state) }</p>
+///             <button onclick={on_connect}>{ "Connect" }</button>
+///             <button onclick={on_send}>{ "Send Message" }</button>
+///             <ul>
+///                 { for messages.iter().map(|msg| html! { <li>{ msg }</li> }) }
+///             </ul>
+///         </div>
+///     }
+/// }
+/// ```
+///
+/// # Connection Lifecycle
+///
+/// 1. **Disconnected**: Initial state, no connection active
+/// 2. **Connecting**: Connection attempt in progress
+/// 3. **Connected**: WebSocket ready for sending/receiving messages
+/// 4. **Error**: Connection failed or encountered an error
+///
+/// The hook automatically handles connection cleanup when the component unmounts.
 #[hook]
 pub fn use_websocket(url: &str) -> WebSocketHandle {
     let state = use_state(|| ConnectionState::Disconnected);
