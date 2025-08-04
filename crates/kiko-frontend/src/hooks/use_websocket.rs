@@ -7,6 +7,8 @@ use gloo_net::websocket::{Message, futures::WebSocket};
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
+use kiko::async_callback;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConnectionState {
     Disconnected,
@@ -35,62 +37,48 @@ pub fn use_websocket(url: &str) -> WebSocketHandle {
 
     let url = url.to_string();
 
-    let connect = {
-        let state = state.clone();
-        let sender = sender.clone();
-        let on_message_callback = on_message_callback.clone();
-        let url = url.clone();
+    let connect = async_callback!([state, sender, on_message_callback, url] {
+        state.set(ConnectionState::Connecting);
 
-        Callback::from(move |_: ()| {
-            let state = state.clone();
-            let sender = sender.clone();
-            let on_message_callback = on_message_callback.clone();
-            let url = url.clone();
+        match WebSocket::open(&url) {
+            Ok(ws) => {
+                state.set(ConnectionState::Connected);
 
-            spawn_local(async move {
-                state.set(ConnectionState::Connecting);
+                let (write, mut read) = ws.split();
+                *sender.borrow_mut() = Some(write);
 
-                match WebSocket::open(&url) {
-                    Ok(ws) => {
-                        state.set(ConnectionState::Connected);
-
-                        let (write, mut read) = ws.split();
-                        *sender.borrow_mut() = Some(write);
-
-                        // Handle incoming messages
-                        spawn_local(async move {
-                            while let Some(msg) = read.next().await {
-                                match msg {
-                                    Ok(Message::Text(text)) => {
-                                        if let Some(callback) =
-                                            on_message_callback.borrow().as_ref()
-                                        {
-                                            callback.emit(text);
-                                        }
-                                    }
-                                    Ok(Message::Bytes(_)) => {
-                                        // Handle binary messages if needed
-                                    }
-                                    Err(e) => {
-                                        state.set(ConnectionState::Error(format!(
-                                            "WebSocket error: {e:?}"
-                                        )));
-                                        break;
-                                    }
+                // Handle incoming messages
+                spawn_local(async move {
+                    while let Some(msg) = read.next().await {
+                        match msg {
+                            Ok(Message::Text(text)) => {
+                                if let Some(callback) =
+                                    on_message_callback.borrow().as_ref()
+                                {
+                                    callback.emit(text);
                                 }
                             }
+                            Ok(Message::Bytes(_)) => {
+                                // Handle binary messages if needed
+                            }
+                            Err(e) => {
+                                state.set(ConnectionState::Error(format!(
+                                    "WebSocket error: {e:?}"
+                                )));
+                                break;
+                            }
+                        }
+                    }
 
-                            *sender.borrow_mut() = None;
-                            state.set(ConnectionState::Disconnected);
-                        });
-                    }
-                    Err(e) => {
-                        state.set(ConnectionState::Error(format!("Failed to connect: {e:?}")));
-                    }
-                }
-            });
-        })
-    };
+                    *sender.borrow_mut() = None;
+                    state.set(ConnectionState::Disconnected);
+                });
+            }
+            Err(e) => {
+                state.set(ConnectionState::Error(format!("Failed to connect: {e:?}")));
+            }
+        }
+    });
 
     let disconnect = {
         let state = state.clone();
