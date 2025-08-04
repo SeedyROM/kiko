@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-axum = "0.8.4"
+axum = { version = "0.8.4", features = ["ws"] }
 kiko = { path = "../kiko" }
 tokio = { version = "1.45.0", features = ["full"] }
 tower = "0.5.2"
 tower-http = { version = "0.6.4", features = ["cors", "trace"] }
+chrono = "0.4.41"

@@ -74,6 +74,7 @@ fn setup_routes(app_state: Arc<AppState>) -> Router {
     let api_routes = Router::new()
         .route("/hello", get(handlers::v1::hello::get))
         .route("/session", post(handlers::v1::session::create))
+        .route("/ws", get(handlers::v1::websocket::upgrade))
         .with_state(app_state);
 
     Router::new()
@@ -111,12 +112,13 @@ pub mod handlers {
     pub mod v1 {
         pub mod hello {
             use axum::Json;
-            use kiko::serde_json::{json, Value};
+            use kiko::serde_json::{Value, json};
 
             /// Handler to return a simple hello message
             pub async fn get() -> Json<Value> {
+                let timestamp = chrono::Utc::now().to_rfc3339();
                 Json(json!({
-                    "message": "Hello from Kiko API!",
+                    "message": format!("Hello, world! Current time: {timestamp}"),
                     "status": "ok"
                 }))
             }
@@ -141,6 +143,60 @@ pub mod handlers {
                     payload.name,
                     payload.duration,
                 ))
+            }
+        }
+
+        pub mod websocket {
+            use axum::{
+                extract::ws::{self, WebSocket, WebSocketUpgrade},
+                response::Response,
+            };
+            use kiko::log;
+
+            /// Handler to upgrade HTTP connection to WebSocket
+            pub async fn upgrade(ws: WebSocketUpgrade) -> Response {
+                ws.on_upgrade(handle_socket)
+            }
+
+            /// Handle WebSocket connection
+            async fn handle_socket(mut socket: WebSocket) {
+                log::info!("WebSocket connection established");
+
+                // Send a welcome message
+                if let Err(e) = socket
+                    .send(ws::Message::Text("Hello WebSocket!".to_string().into()))
+                    .await
+                {
+                    log::error!("Failed to send welcome message: {}", e);
+                    return;
+                }
+
+                // Echo messages back to client
+                while let Some(msg) = socket.recv().await {
+                    match msg {
+                        Ok(ws::Message::Text(text)) => {
+                            log::info!("Received text message: {}", text);
+                            let response = format!("Echo: {text}");
+                            if let Err(e) = socket.send(ws::Message::Text(response.into())).await {
+                                log::error!("Failed to send echo response: {}", e);
+                                break;
+                            }
+                        }
+                        Ok(ws::Message::Close(_)) => {
+                            log::info!("WebSocket connection closed");
+                            break;
+                        }
+                        Err(e) => {
+                            log::error!("WebSocket error: {}", e);
+                            break;
+                        }
+                        _ => {
+                            // Handle other message types (Binary, Ping, Pong) if needed
+                        }
+                    }
+                }
+
+                log::info!("WebSocket connection ended");
             }
         }
     }
