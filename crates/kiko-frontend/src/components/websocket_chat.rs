@@ -21,20 +21,20 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
     let messages_container_ref = use_node_ref();
 
     // WebSocket hook - pure transport layer
-    let (ws_state, ws_connect, ws_disconnect, ws_send, set_on_message) = use_websocket(&props.url);
+    let ws = use_websocket(&props.url);
 
     // Auto-connect on mount
     {
-        let ws_connect = ws_connect.clone();
+        let ws_connect = ws.connect.clone();
         use_effect_with((), move |_| {
-            ws_connect.emit(web_sys::MouseEvent::new("click").unwrap());
+            ws_connect.emit(());
         });
     }
 
     // Set up message handler - refreshes callback to avoid stale closures
     {
         let messages = messages.clone();
-        let set_on_message = set_on_message.clone();
+        let set_on_message = ws.set_on_message.clone();
 
         use_effect(move || {
             let message_callback = Callback::from({
@@ -77,7 +77,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
     let send_message = {
         let message_input = message_input.clone();
         let messages = messages.clone();
-        let ws_send = ws_send.clone();
+        let ws_send = ws.send.clone();
 
         Callback::from(move |text: String| {
             if !text.is_empty() {
@@ -144,13 +144,13 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
             // Connection status
             <div class="mb-4">
                 <span class="font-medium">{ "Status: " }</span>
-                <span class={match ws_state {
+                <span class={match ws.state {
                     ConnectionState::Connected => "text-green-600",
                     ConnectionState::Connecting => "text-yellow-600",
                     ConnectionState::Disconnected => "text-gray-600",
                     ConnectionState::Error(_) => "text-red-600",
                 }}>
-                    { match &ws_state {
+                    { match &ws.state {
                         ConnectionState::Connected => "Connected".to_string(),
                         ConnectionState::Connecting => "Connecting...".to_string(),
                         ConnectionState::Disconnected => "Disconnected".to_string(),
@@ -163,16 +163,16 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
             <div class="mb-4 space-x-2">
                 <button
                     class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-                    onclick={ws_connect}
-                    disabled={matches!(ws_state, ConnectionState::Connected)}
+                    onclick={ws.connect.reform(|_| ())}
+                    disabled={matches!(ws.state, ConnectionState::Connected)}
                 >
                     { "Connect" }
                 </button>
 
                 <button
                     class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
-                    onclick={ws_disconnect}
-                    disabled={!matches!(ws_state, ConnectionState::Connected)}
+                    onclick={ws.disconnect.reform(|_| ())}
+                    disabled={!matches!(ws.state, ConnectionState::Connected)}
                 >
                     { "Disconnect" }
                 </button>
@@ -180,7 +180,7 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
 
             // Message input
             {
-                if matches!(ws_state, ConnectionState::Connected) {
+                if matches!(ws.state, ConnectionState::Connected) {
                     html! {
                         <div class="mb-4">
                             <div class="flex space-x-2">

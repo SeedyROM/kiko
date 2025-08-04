@@ -1,7 +1,9 @@
-use futures::{SinkExt, StreamExt};
-use gloo_net::websocket::{Message, futures::WebSocket};
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use futures::stream::SplitSink;
+use futures::{SinkExt, StreamExt};
+use gloo_net::websocket::{Message, futures::WebSocket};
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
@@ -15,17 +17,20 @@ pub enum ConnectionState {
 
 pub type MessageCallback = Callback<String>;
 
+type WebSocketSender = Rc<RefCell<Option<SplitSink<WebSocket, Message>>>>;
+
+pub struct WebSocketHandle {
+    pub state: ConnectionState,
+    pub connect: Callback<()>,
+    pub disconnect: Callback<()>,
+    pub send: Callback<String>,
+    pub set_on_message: Callback<MessageCallback>,
+}
+
 #[hook]
-pub fn use_websocket(url: &str) -> (
-    ConnectionState,
-    Callback<web_sys::MouseEvent>, // connect
-    Callback<web_sys::MouseEvent>, // disconnect
-    Callback<String>,              // send
-    Callback<MessageCallback>,     // set_on_message
-) {
+pub fn use_websocket(url: &str) -> WebSocketHandle {
     let state = use_state(|| ConnectionState::Disconnected);
-    let sender: Rc<RefCell<Option<futures::stream::SplitSink<WebSocket, Message>>>> =
-        use_mut_ref(|| None);
+    let sender: WebSocketSender = use_mut_ref(|| None);
     let on_message_callback: Rc<RefCell<Option<MessageCallback>>> = use_mut_ref(|| None);
 
     let url = url.to_string();
@@ -36,7 +41,7 @@ pub fn use_websocket(url: &str) -> (
         let on_message_callback = on_message_callback.clone();
         let url = url.clone();
 
-        Callback::from(move |_: web_sys::MouseEvent| {
+        Callback::from(move |_: ()| {
             let state = state.clone();
             let sender = sender.clone();
             let on_message_callback = on_message_callback.clone();
@@ -57,7 +62,9 @@ pub fn use_websocket(url: &str) -> (
                             while let Some(msg) = read.next().await {
                                 match msg {
                                     Ok(Message::Text(text)) => {
-                                        if let Some(callback) = on_message_callback.borrow().as_ref() {
+                                        if let Some(callback) =
+                                            on_message_callback.borrow().as_ref()
+                                        {
                                             callback.emit(text);
                                         }
                                     }
@@ -89,7 +96,7 @@ pub fn use_websocket(url: &str) -> (
         let state = state.clone();
         let sender = sender.clone();
 
-        Callback::from(move |_: web_sys::MouseEvent| {
+        Callback::from(move |_: ()| {
             *sender.borrow_mut() = None;
             state.set(ConnectionState::Disconnected);
         })
@@ -121,5 +128,11 @@ pub fn use_websocket(url: &str) -> (
         })
     };
 
-    ((*state).clone(), connect, disconnect, send, set_on_message)
+    WebSocketHandle {
+        state: (*state).clone(),
+        connect,
+        disconnect,
+        send,
+        set_on_message,
+    }
 }
