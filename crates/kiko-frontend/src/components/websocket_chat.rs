@@ -1,5 +1,6 @@
 use crate::hooks::{ConnectionState, use_websocket};
 use std::collections::VecDeque;
+use wasm_bindgen::JsValue;
 use yew::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -42,7 +43,9 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
                 move |text: String| {
                     let chat_msg = ChatMessage {
                         content: text,
-                        timestamp: js_sys::Date::new_0().to_iso_string().into(),
+                        timestamp: js_sys::Date::new_0()
+                            .to_locale_string("en-US", &JsValue::undefined())
+                            .into(),
                         is_outgoing: false,
                     };
 
@@ -84,7 +87,10 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
                 // Add to our message history as outgoing
                 let chat_msg = ChatMessage {
                     content: text.clone(),
-                    timestamp: js_sys::Date::new_0().to_iso_string().into(),
+                    // Format timestamp as needed human-readable
+                    timestamp: js_sys::Date::new_0()
+                        .to_locale_string("en-US", &JsValue::undefined())
+                        .into(),
                     is_outgoing: true,
                 };
 
