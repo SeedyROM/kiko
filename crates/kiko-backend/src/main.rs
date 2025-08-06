@@ -159,6 +159,8 @@ pub mod handlers {
                 response::Response,
             };
             use kiko::log;
+            use kiko::tracing;
+
             use std::net::SocketAddr;
 
             /// Handler to upgrade HTTP connection to WebSocket
@@ -171,27 +173,19 @@ pub mod handlers {
             }
 
             /// Handle WebSocket connection
+            #[tracing::instrument(name = "websocket", skip(socket))]
             async fn handle_socket(mut socket: WebSocket, client_addr: SocketAddr) {
-                let client_ip = client_addr.ip();
-                let client_port = client_addr.port();
-
-                log::debug!(
-                    "WebSocket connection established from {}:{}",
-                    client_ip,
-                    client_port
-                );
+                log::debug!("Connection established");
 
                 // Send a welcome message with client info
-                let welcome_msg =
-                    format!("Hello WebSocket! Connected from {client_ip}:{client_port}");
+                let welcome_msg = format!(
+                    "Hello WebSocket! Connected from {}:{}",
+                    client_addr.ip(),
+                    client_addr.port()
+                );
 
                 if let Err(e) = socket.send(ws::Message::Text(welcome_msg.into())).await {
-                    log::error!(
-                        "Failed to send welcome message to {}:{} - {}",
-                        client_ip,
-                        client_port,
-                        e
-                    );
+                    log::error!("Failed to send welcome message: {}", e);
                     return;
                 }
 
@@ -199,38 +193,19 @@ pub mod handlers {
                 while let Some(msg) = socket.recv().await {
                     match msg {
                         Ok(ws::Message::Text(text)) => {
-                            log::debug!(
-                                "Received text message from {}:{} - {}",
-                                client_ip,
-                                client_port,
-                                text
-                            );
+                            log::debug!("Received text message: {}", text);
                             let response = format!("Echo: {text}");
                             if let Err(e) = socket.send(ws::Message::Text(response.into())).await {
-                                log::error!(
-                                    "Failed to send echo response to {}:{} - {}",
-                                    client_ip,
-                                    client_port,
-                                    e
-                                );
+                                log::error!("Failed to send echo response: {}", e);
                                 break;
                             }
                         }
                         Ok(ws::Message::Close(_)) => {
-                            log::debug!(
-                                "WebSocket connection closed by client {}:{}",
-                                client_ip,
-                                client_port
-                            );
+                            log::debug!("Connection closed by client");
                             break;
                         }
                         Err(e) => {
-                            log::error!(
-                                "WebSocket error from {}:{} - {}",
-                                client_ip,
-                                client_port,
-                                e
-                            );
+                            log::error!("WebSocket error: {}", e);
                             break;
                         }
                         _ => {
@@ -239,11 +214,7 @@ pub mod handlers {
                     }
                 }
 
-                log::debug!(
-                    "WebSocket connection ended for {}:{}",
-                    client_ip,
-                    client_port
-                );
+                log::debug!("Connection ended");
             }
         }
     }

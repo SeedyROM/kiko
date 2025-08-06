@@ -1,7 +1,9 @@
-use crate::hooks::{ConnectionState, use_websocket};
 use std::collections::VecDeque;
+
 use wasm_bindgen::JsValue;
 use yew::prelude::*;
+
+use crate::hooks::{ConnectionState, use_websocket};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChatMessage {
