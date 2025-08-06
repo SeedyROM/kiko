@@ -32,7 +32,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
     let error_msg = use_state(|| None::<String>);
     let success = use_state(|| false);
 
-    // Form validation
+    // Form validation - fix the logic to work with defaults
     let is_valid = !session_name.is_empty()
         && (*duration_hours > 0 || *duration_minutes > 0)
         && (*duration_hours <= 24);
@@ -41,7 +41,8 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
     let on_name_change = {
         let session_name = session_name.clone();
         let error_msg = error_msg.clone();
-        Callback::from(move |e: Event| {
+        Callback::from(move |e: InputEvent| {
+            // <- Change to InputEvent
             if let Some(input) = e.target_dyn_into::<HtmlInputElement>() {
                 session_name.set(input.value());
                 error_msg.set(None);
@@ -91,7 +92,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
         Callback::from(move |e: SubmitEvent| {
             e.prevent_default();
 
-            // Validate form
+            // Always prevent submission if form is invalid
             if session_name.is_empty() {
                 error_msg.set(Some("Session name is required".to_string()));
                 return;
@@ -105,6 +106,11 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
 
             if *duration_hours > 24 {
                 error_msg.set(Some("Duration cannot exceed 24 hours".to_string()));
+                return;
+            }
+
+            // Don't submit if already loading
+            if *loading {
                 return;
             }
 
@@ -232,7 +238,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Sprint Planning, Story Estimation..."
                             value={(*session_name).clone()}
-                            onchange={on_name_change}
+                            oninput={on_name_change}
                             disabled={*loading}
                         />
                     </div>

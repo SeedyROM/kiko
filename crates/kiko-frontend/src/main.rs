@@ -76,7 +76,9 @@ fn app() -> Html {
             </div>
 
             // Create Session Section
-            <CreateSession />
+            <div class="mb-8">
+                <CreateSession />
+            </div>
 
             // WebSocket Section
             <WebSocketChat url="ws://127.0.0.1:3030/api/v1/ws" />
