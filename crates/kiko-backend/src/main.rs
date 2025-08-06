@@ -34,9 +34,13 @@ async fn main() -> Result<(), Report> {
     log::info!("Press Ctrl+C to stop the server");
 
     // Start the server with graceful shutdown
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    // IMPORTANT: Use into_make_service_with_connect_info to preserve client connection info
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     log::info!("Shutting down server");
     Ok(())
@@ -148,26 +152,46 @@ pub mod handlers {
 
         pub mod websocket {
             use axum::{
-                extract::ws::{self, WebSocket, WebSocketUpgrade},
+                extract::{
+                    ConnectInfo,
+                    ws::{self, WebSocket, WebSocketUpgrade},
+                },
                 response::Response,
             };
             use kiko::log;
+            use std::net::SocketAddr;
 
             /// Handler to upgrade HTTP connection to WebSocket
-            pub async fn upgrade(ws: WebSocketUpgrade) -> Response {
-                ws.on_upgrade(handle_socket)
+            pub async fn upgrade(
+                ws: WebSocketUpgrade,
+                ConnectInfo(addr): ConnectInfo<SocketAddr>,
+            ) -> Response {
+                // Pass the client address to the handler
+                ws.on_upgrade(move |socket| handle_socket(socket, addr))
             }
 
             /// Handle WebSocket connection
-            async fn handle_socket(mut socket: WebSocket) {
-                log::info!("WebSocket connection established");
+            async fn handle_socket(mut socket: WebSocket, client_addr: SocketAddr) {
+                let client_ip = client_addr.ip();
+                let client_port = client_addr.port();
 
-                // Send a welcome message
-                if let Err(e) = socket
-                    .send(ws::Message::Text("Hello WebSocket!".to_string().into()))
-                    .await
-                {
-                    log::error!("Failed to send welcome message: {}", e);
+                log::debug!(
+                    "WebSocket connection established from {}:{}",
+                    client_ip,
+                    client_port
+                );
+
+                // Send a welcome message with client info
+                let welcome_msg =
+                    format!("Hello WebSocket! Connected from {client_ip}:{client_port}");
+
+                if let Err(e) = socket.send(ws::Message::Text(welcome_msg.into())).await {
+                    log::error!(
+                        "Failed to send welcome message to {}:{} - {}",
+                        client_ip,
+                        client_port,
+                        e
+                    );
                     return;
                 }
 
@@ -175,19 +199,38 @@ pub mod handlers {
                 while let Some(msg) = socket.recv().await {
                     match msg {
                         Ok(ws::Message::Text(text)) => {
-                            log::info!("Received text message: {}", text);
+                            log::debug!(
+                                "Received text message from {}:{} - {}",
+                                client_ip,
+                                client_port,
+                                text
+                            );
                             let response = format!("Echo: {text}");
                             if let Err(e) = socket.send(ws::Message::Text(response.into())).await {
-                                log::error!("Failed to send echo response: {}", e);
+                                log::error!(
+                                    "Failed to send echo response to {}:{} - {}",
+                                    client_ip,
+                                    client_port,
+                                    e
+                                );
                                 break;
                             }
                         }
                         Ok(ws::Message::Close(_)) => {
-                            log::info!("WebSocket connection closed");
+                            log::debug!(
+                                "WebSocket connection closed by client {}:{}",
+                                client_ip,
+                                client_port
+                            );
                             break;
                         }
                         Err(e) => {
-                            log::error!("WebSocket error: {}", e);
+                            log::error!(
+                                "WebSocket error from {}:{} - {}",
+                                client_ip,
+                                client_port,
+                                e
+                            );
                             break;
                         }
                         _ => {
@@ -196,7 +239,11 @@ pub mod handlers {
                     }
                 }
 
-                log::info!("WebSocket connection ended");
+                log::debug!(
+                    "WebSocket connection ended for {}:{}",
+                    client_ip,
+                    client_port
+                );
             }
         }
     }

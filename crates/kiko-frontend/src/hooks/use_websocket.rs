@@ -33,6 +33,9 @@ pub type MessageCallback = Callback<String>;
 /// Internal type for managing the WebSocket sender.
 type WebSocketSender = Rc<RefCell<Option<SplitSink<WebSocket, Message>>>>;
 
+/// Internal type for managing the abort handle for the read task
+type AbortHandle = Rc<RefCell<Option<futures::future::AbortHandle>>>;
+
 /// Handle returned by the `use_websocket` hook, providing control over the WebSocket connection.
 pub struct WebSocketHandle {
     /// Current connection state
@@ -122,30 +125,66 @@ pub struct WebSocketHandle {
 /// The hook automatically handles connection cleanup when the component unmounts.
 #[hook]
 pub fn use_websocket(url: &str) -> WebSocketHandle {
+    use futures::FutureExt;
+
     let state = use_state(|| ConnectionState::Disconnected);
     let sender: WebSocketSender = use_mut_ref(|| None);
     let on_message_callback: Rc<RefCell<Option<MessageCallback>>> = use_mut_ref(|| None);
+    let abort_handle: AbortHandle = use_mut_ref(|| None);
 
     let url = url.to_string();
 
-    let connect = async_callback!([state, sender, on_message_callback, url] {
+    // Clean up on unmount
+    {
+        let abort_handle = abort_handle.clone();
+        let sender = sender.clone();
+        use_effect_with((), move |_| {
+            move || {
+                // Abort the read task if it exists
+                if let Some(handle) = abort_handle.borrow_mut().take() {
+                    handle.abort();
+                }
+                // Close the sender if it exists
+                if let Some(mut write) = sender.borrow_mut().take() {
+                    spawn_local(async move {
+                        let _ = write.close().await;
+                    });
+                }
+            }
+        });
+    }
+
+    let connect = async_callback!([state, sender, on_message_callback, abort_handle, url] {
+        // Don't connect if already connected or connecting
+        if matches!(*state, ConnectionState::Connected | ConnectionState::Connecting) {
+            return;
+        }
+
         state.set(ConnectionState::Connecting);
+
+        // Abort any existing read task
+        if let Some(handle) = abort_handle.borrow_mut().take() {
+            handle.abort();
+        }
 
         match WebSocket::open(&url) {
             Ok(ws) => {
                 state.set(ConnectionState::Connected);
 
-                let (write, mut read) = ws.split();
+                let (write, read) = ws.split();
                 *sender.borrow_mut() = Some(write);
 
+                // Create an abortable future for the read task
+                let (abort_handle_new, abort_registration) = futures::future::AbortHandle::new_pair();
+                *abort_handle.borrow_mut() = Some(abort_handle_new);
+
                 // Handle incoming messages
-                spawn_local(async move {
+                let read_future = async move {
+                    let mut read = read;
                     while let Some(msg) = read.next().await {
                         match msg {
                             Ok(Message::Text(text)) => {
-                                if let Some(callback) =
-                                    on_message_callback.borrow().as_ref()
-                                {
+                                if let Some(callback) = on_message_callback.borrow().as_ref() {
                                     callback.emit(text);
                                 }
                             }
@@ -153,17 +192,20 @@ pub fn use_websocket(url: &str) -> WebSocketHandle {
                                 // Handle binary messages if needed
                             }
                             Err(e) => {
-                                state.set(ConnectionState::Error(format!(
-                                    "WebSocket error: {e:?}"
-                                )));
+                                state.set(ConnectionState::Error(format!("WebSocket error: {e:?}")));
                                 break;
                             }
                         }
                     }
 
+                    // Clean up when the read loop ends
                     *sender.borrow_mut() = None;
+                    *abort_handle.borrow_mut() = None;
                     state.set(ConnectionState::Disconnected);
-                });
+                };
+
+                // Spawn the abortable future
+                spawn_local(futures::future::Abortable::new(read_future, abort_registration).map(|_| ()));
             }
             Err(e) => {
                 state.set(ConnectionState::Error(format!("Failed to connect: {e:?}")));
@@ -174,24 +216,48 @@ pub fn use_websocket(url: &str) -> WebSocketHandle {
     let disconnect = {
         let state = state.clone();
         let sender = sender.clone();
+        let abort_handle = abort_handle.clone();
 
         Callback::from(move |_: ()| {
-            *sender.borrow_mut() = None;
-            state.set(ConnectionState::Disconnected);
+            // First, abort the read task to stop receiving messages
+            if let Some(handle) = abort_handle.borrow_mut().take() {
+                handle.abort();
+            }
+
+            // Then close the write half
+            if let Some(mut write) = sender.borrow_mut().take() {
+                let state = state.clone();
+                spawn_local(async move {
+                    let _ = write.close().await;
+                    state.set(ConnectionState::Disconnected);
+                });
+            } else {
+                // Already disconnected
+                state.set(ConnectionState::Disconnected);
+            }
         })
     };
 
     let send = {
         let sender = sender.clone();
+        let state = state.clone();
 
         Callback::from(move |text: String| {
-            let sender = sender.clone();
+            // Only send if connected
+            if !matches!(*state, ConnectionState::Connected) {
+                use kiko::log::warn;
+                warn!("Cannot send message: WebSocket is not connected");
+                return;
+            }
 
+            let sender = sender.clone();
             if let Some(mut write) = sender.borrow_mut().take() {
                 let sender_clone = sender.clone();
                 spawn_local(async move {
                     if (write.send(Message::Text(text)).await).is_err() {
                         // Handle send error - connection might be closed
+                        use kiko::log::error;
+                        error!("Failed to send message through WebSocket");
                     }
                     *sender_clone.borrow_mut() = Some(write);
                 });
