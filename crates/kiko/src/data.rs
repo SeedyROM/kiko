@@ -4,6 +4,8 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use crate::id::SessionId;
+
 /// A simple data structure representing a "Hello World" message, used for now to test the API and integrations.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HelloWorld {
@@ -40,8 +42,9 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(id: String, name: String, duration: Duration) -> Self {
+    pub fn new(name: String, duration: Duration) -> Self {
         let started = std::time::UNIX_EPOCH.elapsed().unwrap().as_secs();
+        let id = SessionId::new().into_string();
 
         Self {
             id,

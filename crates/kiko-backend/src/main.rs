@@ -166,11 +166,7 @@ pub mod handlers {
                 let mut sessions = state.sessions.lock().expect("Failed to lock sessions");
 
                 // Create a new session
-                let session = Session::new(
-                    "session_id".to_string(), // Replace with actual session ID generation logic
-                    payload.name,
-                    payload.duration,
-                );
+                let session = Session::new(payload.name, payload.duration);
 
                 sessions.add_session(session.clone());
 

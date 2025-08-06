@@ -6,9 +6,11 @@
 pub mod api;
 pub mod data;
 pub mod errors;
+pub mod id;
 pub mod log;
 pub mod macros;
 
+pub use id::Id;
 pub use serde;
 pub use serde_json;
 pub use tracing;
