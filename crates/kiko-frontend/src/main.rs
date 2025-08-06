@@ -6,7 +6,7 @@ use yew::prelude::*;
 
 use kiko::{async_callback, data::HelloWorld};
 
-use components::WebSocketChat;
+use components::{CreateSession, WebSocketChat};
 use providers::api;
 
 #[function_component(App)]
@@ -74,6 +74,9 @@ fn app() -> Html {
                     }
                 }
             </div>
+
+            // Create Session Section
+            <CreateSession />
 
             // WebSocket Section
             <WebSocketChat url="ws://127.0.0.1:3030/api/v1/ws" />

@@ -1,5 +1,5 @@
 use kiko::api::{ApiClient, ApiError, HttpApiClient};
-use kiko::data::HelloWorld;
+use kiko::data::{self, HelloWorld};
 
 /// The main API client for the Kiko application, providing methods to interact with the backend API.
 pub struct Api {
@@ -15,6 +15,13 @@ impl Api {
 
     pub async fn fetch_hello(&self) -> Result<HelloWorld, ApiError> {
         self.client.get("/hello").await
+    }
+
+    pub async fn create_session(
+        &self,
+        create_session: &data::CreateSession,
+    ) -> Result<data::Session, ApiError> {
+        self.client.post("/session", create_session).await
     }
 }
 

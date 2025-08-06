@@ -85,6 +85,7 @@ macro_rules! async_callback {
         }
     };
 
+    // FIXME(SeedyROM): This is broken, needs to be fixed.
     // Version with event parameter
     ([$($var:ident),* $(,)?] |$event:ident| $body:expr) => {
         {
