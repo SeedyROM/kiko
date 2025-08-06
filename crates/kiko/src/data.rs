@@ -32,7 +32,7 @@ impl Participant {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
-    id: String,
+    pub id: String,
     name: String,
     started: u64,
     duration: Duration,
@@ -92,19 +92,19 @@ impl Session {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CreateSessionBody {
+pub struct CreateSession {
     pub name: String,
     pub duration: Duration,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AddParticipantBody {
+pub struct AddParticipant {
     pub session_id: String,
     pub participant_name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RemoveParticipantBody {
+pub struct RemoveParticipant {
     pub session_id: String,
     pub participant_id: String,
 }

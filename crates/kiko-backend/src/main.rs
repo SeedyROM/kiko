@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use axum::{
     Router,
@@ -11,8 +11,29 @@ use tower_http::cors::CorsLayer;
 use kiko::errors::Report;
 use kiko::log;
 
-struct AppState {
-    // sessions: Arc<Mutex<Sessions>>,
+struct Sessions {
+    sessions: Vec<kiko::data::Session>,
+}
+
+#[allow(dead_code)]
+impl Sessions {
+    fn new() -> Self {
+        Self {
+            sessions: Vec::new(),
+        }
+    }
+
+    fn add_session(&mut self, session: kiko::data::Session) {
+        self.sessions.push(session);
+    }
+
+    fn remove_session(&mut self, session_id: &str) {
+        self.sessions.retain(|s| s.id != session_id);
+    }
+}
+
+pub struct AppState {
+    sessions: Arc<Mutex<Sessions>>,
 }
 
 #[tokio::main]
@@ -22,7 +43,7 @@ async fn main() -> Result<(), Report> {
 
     // Add application state
     let app_state = Arc::new(AppState {
-         // sessions: Arc::new(Mutex::new(Sessions::new())),
+        sessions: Arc::new(Mutex::new(Sessions::new())),
     });
 
     // Setup the routes
@@ -129,24 +150,31 @@ pub mod handlers {
         }
 
         pub mod session {
-            use axum::Json;
-            use kiko::data::{CreateSessionBody, Session};
+            use std::sync::Arc;
+
+            use axum::{Json, extract::State, response::IntoResponse};
+            use kiko::data::{CreateSession, Session};
             // use std::sync::{Arc};
 
             /// Handler to create a new session
             pub async fn create(
-                // State(state): State<Arc<crate::AppState>>,
-                Json(payload): Json<CreateSessionBody>,
-            ) -> Json<Session> {
+                State(state): State<Arc<crate::AppState>>,
+                Json(payload): Json<CreateSession>,
+            ) -> impl IntoResponse {
                 // let CreateSessionBody { name, duration } = payload;
-                // let mut state = state.lock().expect("Failed to lock state");
-                // let sessions = state.sessions.lock().expect("Failed to lock sessions");
+                let state = state.clone();
+                let mut sessions = state.sessions.lock().expect("Failed to lock sessions");
 
-                Json(Session::new(
+                // Create a new session
+                let session = Session::new(
                     "session_id".to_string(), // Replace with actual session ID generation logic
                     payload.name,
                     payload.duration,
-                ))
+                );
+
+                sessions.add_session(session.clone());
+
+                (axum::http::StatusCode::CREATED, Json(session))
             }
         }
 
