@@ -1,4 +1,6 @@
-use std::sync::{Arc, Mutex};
+pub mod services;
+
+use std::sync::Arc;
 
 use axum::{
     Router,
@@ -11,29 +13,10 @@ use tower_http::cors::CorsLayer;
 use kiko::errors::Report;
 use kiko::log;
 
-struct Sessions {
-    sessions: Vec<kiko::data::Session>,
-}
-
-#[allow(dead_code)]
-impl Sessions {
-    fn new() -> Self {
-        Self {
-            sessions: Vec::new(),
-        }
-    }
-
-    fn add_session(&mut self, session: kiko::data::Session) {
-        self.sessions.push(session);
-    }
-
-    fn remove_session(&mut self, session_id: &str) {
-        self.sessions.retain(|s| s.id != session_id);
-    }
-}
+use crate::services::SessionServiceInMemory;
 
 pub struct AppState {
-    sessions: Arc<Mutex<Sessions>>,
+    sessions: SessionServiceInMemory,
 }
 
 #[tokio::main]
@@ -43,7 +26,7 @@ async fn main() -> Result<(), Report> {
 
     // Add application state
     let app_state = Arc::new(AppState {
-        sessions: Arc::new(Mutex::new(Sessions::new())),
+        sessions: SessionServiceInMemory::new(),
     });
 
     // Setup the routes
@@ -153,24 +136,23 @@ pub mod handlers {
             use std::sync::Arc;
 
             use axum::{Json, extract::State, response::IntoResponse};
-            use kiko::data::{CreateSession, Session};
-            // use std::sync::{Arc};
+
+            use crate::services::SessionService;
+            use kiko::data::CreateSession;
 
             /// Handler to create a new session
             pub async fn create(
                 State(state): State<Arc<crate::AppState>>,
                 Json(payload): Json<CreateSession>,
             ) -> impl IntoResponse {
-                // let CreateSessionBody { name, duration } = payload;
-                let state = state.clone();
-                let mut sessions = state.sessions.lock().expect("Failed to lock sessions");
-
-                // Create a new session
-                let session = Session::new(payload.name, payload.duration);
-
-                sessions.add_session(session.clone());
-
-                (axum::http::StatusCode::CREATED, Json(session))
+                match state.sessions.create(payload).await {
+                    Ok(session) => (axum::http::StatusCode::CREATED, Json(session)).into_response(),
+                    Err(_) => (
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to create session",
+                    )
+                        .into_response(),
+                }
             }
         }
 
