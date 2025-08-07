@@ -5,9 +5,9 @@
 //!
 //! # Example
 //! ```compile_fail
-//! use your_crate::api::{HttpApiClient, ApiClient};
+//! use your_crate::api::{ApiClientHttp, ApiClient};
 //!
-//! let mut client = HttpApiClient::new("https://api.example.com");
+//! let mut client = ApiClientHttp::new("https://api.example.com");
 //! client.set_header("Authorization".to_string(), "Bearer token123".to_string());
 //!
 //! // GET request
@@ -269,20 +269,20 @@ pub trait ApiClient {
 ///
 /// # Example
 /// ```compile_fail
-/// let mut client = HttpApiClient::new("https://api.example.com");
+/// let mut client = ApiClientHttp::new("https://api.example.com");
 /// client.set_header("Content-Type".to_string(), "application/json".to_string());
 /// client.set_header("Authorization".to_string(), "Bearer token123".to_string());
 ///
 /// let response: MyResponse = client.get("/api/data").await?;
 /// ```
-pub struct HttpApiClient {
+pub struct ApiClientHttp {
     /// The base URL for all API requests
     root_url: String,
     /// Headers to include with every request
     headers: ApiHeaders,
 }
 
-impl HttpApiClient {
+impl ApiClientHttp {
     /// Creates a new HTTP API client with the specified base URL.
     ///
     /// # Arguments
@@ -290,7 +290,7 @@ impl HttpApiClient {
     ///
     /// # Example
     /// ```compile_fail
-    /// let client = HttpApiClient::new("https://api.example.com");
+    /// let client = ApiClientHttp::new("https://api.example.com");
     /// ```
     pub fn new(root_url: impl Into<String>) -> Self {
         Self {
@@ -333,7 +333,7 @@ impl HttpApiClient {
 }
 
 #[async_trait::async_trait(?Send)]
-impl ApiClient for HttpApiClient {
+impl ApiClient for ApiClientHttp {
     async fn make_request(&self, method: HttpMethod, endpoint: &str) -> ApiResult<Response> {
         let url = format!("{}{}", self.root_url, endpoint);
 

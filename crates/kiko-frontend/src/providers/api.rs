@@ -1,15 +1,15 @@
-use kiko::api::{ApiClient, ApiError, HttpApiClient};
+use kiko::api::{ApiClient, ApiClientHttp, ApiError};
 use kiko::data::{self, HelloWorld};
 
 /// The main API client for the Kiko application, providing methods to interact with the backend API.
 pub struct Api {
-    client: HttpApiClient,
+    client: ApiClientHttp,
 }
 
 impl Api {
     pub fn new(base_url: &str) -> Self {
         Api {
-            client: HttpApiClient::new(base_url),
+            client: ApiClientHttp::new(base_url),
         }
     }
 
