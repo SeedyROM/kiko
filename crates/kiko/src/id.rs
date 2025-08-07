@@ -9,9 +9,14 @@ use std::sync::LazyLock;
 use std::sync::Mutex;
 use tiny_id::ShortCodeGenerator;
 
+/// Type alias for a lazy-initialized short code generator with a mutex for thread safety.
+/// This allows us to create a global generator that can be used across the application
+/// without needing to pass it around explicitly.
+type LazyShortCodeGenerator = LazyLock<Mutex<ShortCodeGenerator<char>>>;
+
 // Global generator instances for different ID types
 // Note: tiny_id generators need mutable access, so we wrap in Mutex
-static SESSION_ID_GENERATOR: LazyLock<Mutex<ShortCodeGenerator<char>>> = LazyLock::new(|| {
+static SESSION_ID_GENERATOR: LazyShortCodeGenerator = LazyLock::new(|| {
     // Use alphanumeric but exclude confusing characters
     let alphabet: Vec<char> = "123456789ABCDEFGHJKMNPQRSTUVWXYZabcdefghkmnpqrstuvwxyz"
         .chars()
@@ -19,14 +24,14 @@ static SESSION_ID_GENERATOR: LazyLock<Mutex<ShortCodeGenerator<char>>> = LazyLoc
     Mutex::new(ShortCodeGenerator::with_alphabet(alphabet, 8))
 });
 
-static DEFAULT_ID_GENERATOR: LazyLock<Mutex<ShortCodeGenerator<char>>> = LazyLock::new(|| {
+static DEFAULT_ID_GENERATOR: LazyShortCodeGenerator = LazyLock::new(|| {
     let alphabet: Vec<char> = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         .chars()
         .collect();
     Mutex::new(ShortCodeGenerator::with_alphabet(alphabet, 8))
 });
 
-static SHORT_ID_GENERATOR: LazyLock<Mutex<ShortCodeGenerator<char>>> = LazyLock::new(|| {
+static SHORT_ID_GENERATOR: LazyShortCodeGenerator = LazyLock::new(|| {
     let alphabet: Vec<char> = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         .chars()
         .collect();

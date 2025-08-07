@@ -26,8 +26,8 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
 
     // Form state
     let session_name = use_state(String::new);
-    let duration_hours = use_state(|| 1u32);
-    let duration_minutes = use_state(|| 0u32);
+    let duration_hours = use_state(|| 0u32);
+    let duration_minutes = use_state(|| 30u32); // Default to 30 minutes
 
     // UI state
     let loading = use_state(|| false);
@@ -212,7 +212,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
     let form_classes = if props.modal {
         "bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
     } else {
-        "bg-white border border-gray-200 rounded-lg shadow-sm p-6"
+        "bg-white border border-gray-200 rounded-lg  p-6"
     };
 
     html! {
@@ -285,10 +285,34 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                             <button
                                 type="button"
                                 class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                onclick={set_preset_duration.reform(|_| (0, 10))}
+                                disabled={*loading}
+                            >
+                                { "10m" }
+                            </button>
+                            <button
+                                type="button"
+                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                onclick={set_preset_duration.reform(|_| (0, 15))}
+                                disabled={*loading}
+                            >
+                                { "15m" }
+                            </button>
+                            <button
+                                type="button"
+                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
                                 onclick={set_preset_duration.reform(|_| (0, 30))}
                                 disabled={*loading}
                             >
                                 { "30m" }
+                            </button>
+                                                   <button
+                                type="button"
+                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                onclick={set_preset_duration.reform(|_| (0, 45))}
+                                disabled={*loading}
+                            >
+                                { "45m" }
                             </button>
                             <button
                                 type="button"
@@ -297,22 +321,6 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                                 disabled={*loading}
                             >
                                 { "1h" }
-                            </button>
-                            <button
-                                type="button"
-                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
-                                onclick={set_preset_duration.reform(|_| (2, 0))}
-                                disabled={*loading}
-                            >
-                                { "2h" }
-                            </button>
-                            <button
-                                type="button"
-                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
-                                onclick={set_preset_duration.reform(|_| (4, 0))}
-                                disabled={*loading}
-                            >
-                                { "4h" }
                             </button>
                         </div>
                     </div>
