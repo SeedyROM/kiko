@@ -187,8 +187,8 @@ impl SessionService for SessionServiceInMemory {
         session: kiko::data::CreateSession,
     ) -> Result<kiko::data::Session, Self::Error> {
         let new_session = kiko::data::Session::new(session.name, session.duration);
-        let session_id = SessionId::from_string(new_session.id.clone());
-        self.sessions.insert(session_id, new_session.clone());
+        self.sessions
+            .insert(new_session.id.clone(), new_session.clone());
         Ok(new_session)
     }
 
@@ -233,7 +233,7 @@ impl SessionService for SessionServiceInMemory {
 
         let participant_id = ParticipantId::new();
         let new_participant =
-            kiko::data::Participant::new(participant_id.to_string(), participant_name.to_string());
+            kiko::data::Participant::new(participant_id, participant_name.to_string());
 
         session_entry.add_participant(new_participant.clone());
         Ok(new_participant)
@@ -249,7 +249,7 @@ impl SessionService for SessionServiceInMemory {
             .get_mut(session_id)
             .ok_or_else(|| Self::Error::msg("Session not found"))?;
 
-        session_entry.remove_participant(participant_id.to_string());
+        session_entry.remove_participant(participant_id);
         Ok(())
     }
 

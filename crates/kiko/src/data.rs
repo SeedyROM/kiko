@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::id::SessionId;
+use crate::id::{ParticipantId, SessionId};
 
 /// A simple data structure representing a "Hello World" message, used for now to test the API and integrations.
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -14,16 +14,16 @@ pub struct HelloWorld {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Participant {
-    id: String,
+    id: ParticipantId,
     name: String,
 }
 
 impl Participant {
-    pub fn new(id: String, name: String) -> Self {
+    pub fn new(id: ParticipantId, name: String) -> Self {
         Self { id, name }
     }
 
-    pub fn id(&self) -> &str {
+    pub fn id(&self) -> &ParticipantId {
         &self.id
     }
 
@@ -34,7 +34,7 @@ impl Participant {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
-    pub id: String,
+    pub id: SessionId,
     name: String,
     started: u64,
     duration: Duration,
@@ -44,7 +44,7 @@ pub struct Session {
 impl Session {
     pub fn new(name: String, duration: Duration) -> Self {
         let started = std::time::UNIX_EPOCH.elapsed().unwrap().as_secs();
-        let id = SessionId::new().into_string();
+        let id = SessionId::new();
 
         Self {
             id,
@@ -59,8 +59,8 @@ impl Session {
         self.members.push(participant);
     }
 
-    pub fn remove_participant(&mut self, participant_id: String) {
-        self.members.retain(|p| p.id != participant_id);
+    pub fn remove_participant(&mut self, participant_id: &ParticipantId) {
+        self.members.retain(|p| &p.id != participant_id);
     }
 
     pub fn is_active(&self) -> bool {
