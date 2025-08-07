@@ -79,16 +79,20 @@ async fn shutdown_signal() {
 
 /// Setup the application routes
 fn setup_routes(app_state: Arc<AppState>) -> Router {
+    // TODO(SeedyROM): Add rate limiting configuration
+
     let api_routes = Router::new()
         .route("/hello", get(handlers::v1::hello::get))
         .route("/session", post(handlers::v1::session::create))
         .route("/ws", get(handlers::v1::websocket::upgrade))
-        .with_state(app_state);
+        .with_state(app_state.clone());
 
     Router::new()
+        .route("/health", get(handlers::v1::health::get))
         .nest("/api/v1", api_routes)
         .layer(cors_layer())
         .layer(tower_http::trace::TraceLayer::new_for_http())
+        .with_state(app_state)
 }
 
 /// Setup CORS layer
@@ -221,6 +225,28 @@ pub mod handlers {
                 }
 
                 log::debug!("Connection ended");
+            }
+        }
+
+        pub mod health {
+            use axum::{Json, extract::State};
+            use kiko::serde_json::{Value, json};
+            use std::sync::Arc;
+
+            use crate::services::SessionService;
+
+            pub async fn get(State(state): State<Arc<crate::AppState>>) -> Json<Value> {
+                let session_count = state.sessions.list().await.unwrap_or_default().len();
+
+                Json(json!({
+                    "status": "healthy",
+                    "timestamp": chrono::Utc::now().to_rfc3339(),
+                    "services": {
+                        "sessions": "up",
+                        "active_sessions": session_count
+                    },
+                    "uptime": "todo" // Track app start time
+                }))
             }
         }
     }
