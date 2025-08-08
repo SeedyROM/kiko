@@ -3,7 +3,10 @@ use std::time::Duration;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use kiko::data::{self, Session};
+use kiko::{
+    async_callback,
+    data::{self, Session},
+};
 
 use crate::providers::api;
 
@@ -81,103 +84,90 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
     };
 
     // Submit handler - using manual approach that works
-    let on_submit = {
-        let api = api.clone();
-        let session_name = session_name.clone();
-        let duration_hours = duration_hours.clone();
-        let duration_minutes = duration_minutes.clone();
-        let loading = loading.clone();
-        let error_msg = error_msg.clone();
-        let success = success.clone();
-        let on_session_created = props.on_session_created.clone();
+    let on_session_created = props.on_session_created.clone();
+    let on_submit = async_callback!([
+        api,
+        session_name,
+        duration_hours,
+        duration_minutes,
+        loading,
+        error_msg,
+        success,
+        on_session_created,
+    ] |e: SubmitEvent| {
+        e.prevent_default();
 
-        Callback::from(move |e: SubmitEvent| {
-            e.prevent_default();
+        // Always prevent submission if form is invalid
+        if session_name.is_empty() {
+            error_msg.set(Some("Session name is required".to_string()));
+            return;
+        }
 
-            // Always prevent submission if form is invalid
-            if session_name.is_empty() {
-                error_msg.set(Some("Session name is required".to_string()));
-                return;
-            }
+        let total_seconds = (*duration_hours * 3600) + (*duration_minutes * 60);
+        if total_seconds == 0 {
+            error_msg.set(Some("Duration must be greater than 0".to_string()));
+            return;
+        }
 
-            let total_seconds = (*duration_hours * 3600) + (*duration_minutes * 60);
-            if total_seconds == 0 {
-                error_msg.set(Some("Duration must be greater than 0".to_string()));
-                return;
-            }
+        if *duration_hours > 24 {
+            error_msg.set(Some("Duration cannot exceed 24 hours".to_string()));
+            return;
+        }
 
-            if *duration_hours > 24 {
-                error_msg.set(Some("Duration cannot exceed 24 hours".to_string()));
-                return;
-            }
+        // Don't submit if already loading or successfully created
+        if *loading || *success {
+            return;
+        }
 
-            // Don't submit if already loading or successfully created
-            if *loading || *success {
-                return;
-            }
+        loading.set(true);
+        error_msg.set(None);
 
-            // Clone for async block
-            let api = api.clone();
-            let session_name = session_name.clone();
-            let duration_hours = duration_hours.clone();
-            let duration_minutes = duration_minutes.clone();
-            let loading = loading.clone();
-            let error_msg = error_msg.clone();
-            let success = success.clone();
-            let on_session_created = on_session_created.clone();
+        let create_request = data::CreateSession {
+            name: (*session_name).clone(),
+            duration: Duration::from_secs(total_seconds as u64),
+        };
 
-            wasm_bindgen_futures::spawn_local(async move {
-                loading.set(true);
-                error_msg.set(None);
+        match api.create_session(&create_request).await {
+            Ok(session) => {
+                loading.set(false);
+                success.set(true);
 
-                let create_request = data::CreateSession {
-                    name: (*session_name).clone(),
-                    duration: Duration::from_secs(total_seconds as u64),
-                };
-
-                match api.create_session(&create_request).await {
-                    Ok(session) => {
-                        loading.set(false);
-                        success.set(true);
-
-                        // Notify parent component
-                        if let Some(callback) = &on_session_created {
-                            callback.emit(session);
-                        }
-
-                        // Reset form after showing success message
-                        let session_name = session_name.clone();
-                        let duration_hours = duration_hours.clone();
-                        let duration_minutes = duration_minutes.clone();
-                        let success = success.clone();
-
-                        wasm_bindgen_futures::spawn_local(async move {
-                            // Wait 1.5 seconds
-                            let promise = js_sys::Promise::new(&mut |resolve, _| {
-                                let window = web_sys::window().unwrap();
-                                window
-                                    .set_timeout_with_callback_and_timeout_and_arguments_0(
-                                        &resolve, 1500,
-                                    )
-                                    .unwrap();
-                            });
-                            let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
-
-                            // Reset form
-                            session_name.set(String::new());
-                            duration_hours.set(1);
-                            duration_minutes.set(0);
-                            success.set(false);
-                        });
-                    }
-                    Err(err) => {
-                        loading.set(false);
-                        error_msg.set(Some(format!("Failed to create session: {err}")));
-                    }
+                // Notify parent component
+                if let Some(callback) = &on_session_created {
+                    callback.emit(session);
                 }
-            });
-        })
-    };
+
+                // Reset form after showing success message
+                let session_name = session_name.clone();
+                let duration_hours = duration_hours.clone();
+                let duration_minutes = duration_minutes.clone();
+                let success = success.clone();
+
+                wasm_bindgen_futures::spawn_local(async move {
+                    // Wait 1.5 seconds
+                    let promise = js_sys::Promise::new(&mut |resolve, _| {
+                        let window = web_sys::window().unwrap();
+                        window
+                            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                                &resolve, 1500,
+                            )
+                            .unwrap();
+                    });
+                    let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+
+                    // Reset form
+                    session_name.set(String::new());
+                    duration_hours.set(1);
+                    duration_minutes.set(0);
+                    success.set(false);
+                });
+            }
+            Err(err) => {
+                loading.set(false);
+                error_msg.set(Some(format!("Failed to create session: {err}")));
+            }
+        }
+    });
 
     // Cancel handler
     let on_cancel_click = {

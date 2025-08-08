@@ -14,9 +14,13 @@ Kiko is a Hawaiian word meaning "dot," "point," or "spot" - referring to small m
 
 ### 📓 Prerequisite Dependencies
 - [`rust`](https://www.rust-lang.org/tools/install) **(v1.85.0 or later)**
+    - [`rustup`](https://rustup.rs/)
     - [`cargo-watch`](https://crates.io/crates/cargo-watch)
     - [`trunk`](https://crates.io/crates/trunk)
+    - Install the wasm target `rustup target add wasm32-unknown-unknown`
+
 - [`node`](https://nodejs.org/en/download/) **(v20.0.0 or later) for `npx`**
+    - Install tailwind globally `npm i -G tailwindcss`
 
 ### 🏃‍♂️ Running Locally
 

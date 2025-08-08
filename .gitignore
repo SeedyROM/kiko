@@ -1,2 +1,11 @@
-target
+# OS generated files
 .DS_Store
+
+# Rust build artifacts
+target
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.p12

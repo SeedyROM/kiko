@@ -72,29 +72,25 @@
 /// });
 /// ```
 macro_rules! async_callback {
-    // Version without event parameter
-    ([$($var:ident),* $(,)?] $body:expr) => {
+    // Version with event parameter
+    ([$($var:ident),* $(,)?] |$event:ident: $event_type:ty| $body:block) => {
         {
             $(let $var = $var.clone();)*
-            Callback::from(move |_| {
+            Callback::from(move |$event: $event_type| {
                 $(let $var = $var.clone();)*
-                wasm_bindgen_futures::spawn_local(async move {
-                    $body
-                });
+                let $event = $event.clone();
+                wasm_bindgen_futures::spawn_local(async move $body);
             })
         }
     };
 
-    // FIXME(SeedyROM): This is broken, needs to be fixed.
-    // Version with event parameter
-    ([$($var:ident),* $(,)?] |$event:ident| $body:expr) => {
+    // Version without event parameter
+    ([$($var:ident),* $(,)?] $body:block) => {
         {
             $(let $var = $var.clone();)*
-            Callback::from(move |$event| {
+            Callback::from(move |_| {
                 $(let $var = $var.clone();)*
-                wasm_bindgen_futures::spawn_local(async move {
-                    $body
-                });
+                wasm_bindgen_futures::spawn_local(async move $body);
             })
         }
     };
