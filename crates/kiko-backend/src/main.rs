@@ -84,7 +84,6 @@ fn setup_routes(app_state: Arc<AppState>) -> Router {
     // TODO(SeedyROM): Add rate limiting configuration
 
     let api_routes = Router::new()
-        .route("/hello", get(handlers::v1::hello::get))
         .route("/session", post(handlers::v1::session::create))
         .route("/session/{session_id}", get(handlers::v1::session::get))
         .route("/ws", get(handlers::v1::websocket::upgrade))
@@ -125,20 +124,6 @@ fn cors_layer() -> CorsLayer {
 pub mod handlers {
     //! Handlers for the API routes
     pub mod v1 {
-        pub mod hello {
-            use axum::Json;
-            use kiko::serde_json::{Value, json};
-
-            /// Handler to return a simple hello message
-            pub async fn get() -> Json<Value> {
-                let timestamp = chrono::Utc::now().to_rfc3339();
-                Json(json!({
-                    "message": format!("Hello, world! Current time: {timestamp}"),
-                    "status": "ok"
-                }))
-            }
-        }
-
         pub mod session {
             use std::sync::Arc;
 

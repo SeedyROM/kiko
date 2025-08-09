@@ -6,12 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::id::{ParticipantId, SessionId};
 
-/// A simple data structure representing a "Hello World" message, used for now to test the API and integrations.
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct HelloWorld {
-    pub message: String,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Participant {
     id: ParticipantId,

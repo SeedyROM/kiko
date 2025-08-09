@@ -134,14 +134,15 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
 
                 // Notify parent component
                 if let Some(callback) = &on_session_created {
-                    callback.emit(session);
+                    callback.emit(session.clone());
                 }
 
-                // Reset form after showing success message
+                // Reset form after showing success message and open window
                 let session_name = session_name.clone();
                 let duration_hours = duration_hours.clone();
                 let duration_minutes = duration_minutes.clone();
                 let success = success.clone();
+                let session_id = session.id.clone();
 
                 wasm_bindgen_futures::spawn_local(async move {
                     // Wait 1.5 seconds
@@ -154,6 +155,12 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                             .unwrap();
                     });
                     let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+
+                    // Open new window with the session URL after delay
+                    if let Some(window) = web_sys::window() {
+                        let session_url = format!("/session/{session_id}");
+                        let _ = window.open_with_url_and_target(&session_url, "_blank");
+                    }
 
                     // Reset form
                     session_name.set(String::new());
