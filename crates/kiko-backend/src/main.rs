@@ -102,23 +102,23 @@ fn setup_routes(app_state: Arc<AppState>) -> Router {
 /// In debug mode, it allows requests from specific local development ports.
 /// In production, it allows all origins (permissive).
 fn cors_layer() -> CorsLayer {
-    if cfg!(debug_assertions) {
-        let dev_ports = vec![3000, 8000, 8080, 8081, 5173];
-        let mut origins = Vec::new();
+    // if cfg!(debug_assertions) {
+    let dev_ports = vec![3000, 8000, 8080, 8081, 5173];
+    let mut origins = Vec::new();
 
-        for port in dev_ports {
-            origins.push(format!("http://localhost:{port}").parse().unwrap());
-            origins.push(format!("http://127.0.0.1:{port}").parse().unwrap());
-        }
-
-        CorsLayer::new()
-            .allow_origin(origins)
-            .allow_headers([header::CONTENT_TYPE])
-            .allow_methods([Method::GET, Method::POST])
-    } else {
-        // Production CORS - replace with specific origins
-        CorsLayer::permissive()
+    for port in dev_ports {
+        origins.push(format!("http://localhost:{port}").parse().unwrap());
+        origins.push(format!("http://127.0.0.1:{port}").parse().unwrap());
     }
+
+    CorsLayer::new()
+        .allow_origin(origins)
+        .allow_headers([header::CONTENT_TYPE])
+        .allow_methods([Method::GET, Method::POST])
+    // } else {
+    //     // Production CORS - replace with specific origins
+    //     CorsLayer::permissive()
+    // }
 }
 
 pub mod handlers {
