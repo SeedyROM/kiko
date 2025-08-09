@@ -125,10 +125,10 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
     // WASM-compatible time functions using JavaScript Date API
     let get_current_timestamp = || -> u64 { (js_sys::Date::now() / 1000.0) as u64 };
-    
+
     // State for live time updates
-    let current_time = use_state(|| get_current_timestamp());
-    
+    let current_time = use_state(get_current_timestamp);
+
     // Update timer every second
     use_effect({
         let current_time = current_time.clone();
@@ -139,7 +139,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                     current_time.set(get_current_timestamp());
                 })
             };
-            
+
             // Cleanup function
             move || drop(interval)
         }
