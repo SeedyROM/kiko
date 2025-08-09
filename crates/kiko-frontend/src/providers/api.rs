@@ -23,6 +23,10 @@ impl Api {
     ) -> Result<data::Session, ApiError> {
         self.client.post("/session", create_session).await
     }
+
+    pub async fn fetch_session(&self, session_id: &str) -> Result<data::Session, ApiError> {
+        self.client.get(&format!("/session/{session_id}")).await
+    }
 }
 
 /// Create a new instance of the API client with the default base URL.

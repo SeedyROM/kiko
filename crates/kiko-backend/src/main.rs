@@ -86,6 +86,7 @@ fn setup_routes(app_state: Arc<AppState>) -> Router {
     let api_routes = Router::new()
         .route("/hello", get(handlers::v1::hello::get))
         .route("/session", post(handlers::v1::session::create))
+        .route("/session/{session_id}", get(handlers::v1::session::get))
         .route("/ws", get(handlers::v1::websocket::upgrade))
         .with_state(app_state.clone());
 
@@ -158,6 +159,19 @@ pub mod handlers {
                         "Failed to create session",
                     )
                         .into_response(),
+                }
+            }
+
+            /// Handler to get a session by ID
+            pub async fn get(
+                State(state): State<Arc<crate::AppState>>,
+                axum::extract::Path(session_id): axum::extract::Path<String>,
+            ) -> impl IntoResponse {
+                match state.sessions.get(&session_id.into()).await {
+                    Ok(session) => (axum::http::StatusCode::OK, Json(session)).into_response(),
+                    Err(_) => {
+                        (axum::http::StatusCode::NOT_FOUND, "Session not found").into_response()
+                    }
                 }
             }
         }
