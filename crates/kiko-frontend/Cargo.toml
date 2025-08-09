@@ -11,6 +11,6 @@ js-sys = "0.3.72"
 kiko = { path = "../kiko" }
 wasm-bindgen = { version = "0.2.100", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.50"
-web-sys = "0.3.72"
+web-sys = { version = "0.3.72", features = ["Navigator", "Clipboard"] }
 yew = { version = "0.21.0", features = ["csr"] }
 yew-router = "0.18.0"

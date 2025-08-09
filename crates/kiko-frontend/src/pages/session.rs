@@ -3,6 +3,30 @@ use kiko::{async_callback, data::Session, log::info};
 use std::time::Duration;
 use yew::prelude::*;
 
+#[function_component(CopyUrlButton)]
+pub fn copy_url_button() -> Html {
+    let copy_url = Callback::from(|_| {
+        let window = web_sys::window().unwrap();
+        let location = window.location();
+        let url = location.href().unwrap();
+        let navigator = window.navigator();
+        let clipboard = navigator.clipboard();
+        
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = wasm_bindgen_futures::JsFuture::from(clipboard.write_text(&url)).await;
+        });
+    });
+
+    html! {
+        <button
+            class="mt-3 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onclick={copy_url}
+        >
+            { "Copy URL" }
+        </button>
+    }
+}
+
 #[derive(Properties, PartialEq)]
 pub struct SessionProps {
     pub id: String,
@@ -191,7 +215,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                     <div class="flex items-center space-x-2">
                         <span class={format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
                             if is_active { "bg-green-100 text-green-800" } else { "bg-red-100 text-red-800" })}>
-                            { if is_active { "Active" } else { "Expired" } }
+                            { if is_active { "Active" } else { "Ended" } }
                         </span>
                         {
                             if let Some(on_refresh) = &props.on_refresh {
@@ -228,7 +252,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         <h3 class="text-sm font-medium text-gray-700 mb-1">{ "Time Remaining" }</h3>
                         <p class={format!("text-lg font-semibold {}",
                             if is_active { "text-green-600" } else { "text-red-600" })}>
-                            { if is_active { format_duration(remaining) } else { "Expired".to_string() } }
+                            { if is_active { format_duration(remaining) } else { "Ended".to_string() } }
                         </p>
                     </div>
                 </div>
@@ -251,6 +275,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                 </svg>
                                 <p class="mt-2 text-sm text-gray-500">{ "No participants yet" }</p>
                                 <p class="text-xs text-gray-400">{ "Share this session link to invite participants" }</p>
+                                <CopyUrlButton />
                             </div>
                         }
                     } else {
