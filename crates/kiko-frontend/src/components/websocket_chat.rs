@@ -152,12 +152,24 @@ pub fn websocket_chat(props: &WebSocketChatProps) -> Html {
             // Connection status
             <div class="mb-4">
                 <span class="font-medium">{ "Status: " }</span>
-                <span class={match ws.state {
-                    ConnectionState::Connected => "text-green-600",
-                    ConnectionState::Connecting => "text-yellow-600",
-                    ConnectionState::Disconnected => "text-gray-600",
-                    ConnectionState::Error(_) => "text-red-600",
-                }}>
+                <span
+                    class={format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-gray-900 {}",
+                        match ws.state {
+                            ConnectionState::Connected => "bg-green-100 border border-green-200",
+                            ConnectionState::Connecting => "bg-yellow-100 border border-yellow-200",
+                            ConnectionState::Disconnected => "bg-gray-100 border border-gray-200",
+                            ConnectionState::Error(_) => "bg-red-100 border border-red-200",
+                        }
+                    )}
+                    role="status"
+                    aria-live="polite"
+                    aria-label={match &ws.state {
+                        ConnectionState::Connected => "Connection status: Connected",
+                        ConnectionState::Connecting => "Connection status: Connecting",
+                        ConnectionState::Disconnected => "Connection status: Disconnected",
+                        ConnectionState::Error(_) => "Connection status: Error",
+                    }}
+                >
                     { match &ws.state {
                         ConnectionState::Connected => "Connected".to_string(),
                         ConnectionState::Connecting => "Connecting...".to_string(),

@@ -259,6 +259,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                                     value={duration_hours.to_string()}
                                     onchange={on_hours_change}
                                     disabled={*loading}
+                                    aria-label="Duration Hours"
                                 />
                                 <span class="text-sm text-gray-600">{ "hours" }</span>
                             </div>
@@ -272,6 +273,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                                     value={duration_minutes.to_string()}
                                     onchange={on_minutes_change}
                                     disabled={*loading}
+                                    aria-label="Duration Minutes"
                                 />
                                 <span class="text-sm text-gray-600">{ "minutes" }</span>
                             </div>
