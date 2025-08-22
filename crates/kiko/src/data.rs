@@ -105,3 +105,11 @@ pub struct RemoveParticipant {
     pub session_id: String,
     pub participant_id: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum SessionMessage {
+    CreateSession(CreateSession),
+    AddParticipant(AddParticipant),
+    RemoveParticipant(RemoveParticipant),
+    SessionUpdate(Session),
+}

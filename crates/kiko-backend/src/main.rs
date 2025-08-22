@@ -1,3 +1,4 @@
+pub mod messaging;
 pub mod services;
 
 use std::sync::Arc;
