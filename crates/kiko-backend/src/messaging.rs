@@ -12,7 +12,7 @@
 //!
 //! # Example
 //!
-//! ```no_run
+//! ```rust
 //! use kiko_backend::messaging::PubSub;
 //! use kiko::{data::SessionMessage, id::SessionId};
 //! use std::sync::Arc;
