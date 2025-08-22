@@ -4,11 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+kiko = { path = "../kiko" }
+
 async-trait = "0.1.88"
 axum = { version = "0.8.4", features = ["ws"] }
 chrono = "0.4.41"
 dashmap = "6.1.0"
-kiko = { path = "../kiko" }
 tokio = { version = "1.45.0", features = ["full"] }
 tower = "0.5.2"
 tower_governor = { version = "0.3" }
