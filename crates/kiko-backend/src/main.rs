@@ -236,22 +236,18 @@ pub mod handlers {
                 ))
             }
 
-            async fn handle_join_session(
-                join: &kiko::data::JoinSession,
+            async fn setup_subscription(
+                session_id: SessionId,
                 state: &Arc<crate::AppState>,
                 conn_state: &mut ConnectionState,
-            ) -> Result<WebSocketResponse, WebSocketError> {
-                log::info!("Joining session: {:?}", join);
-
+            ) -> Result<(), WebSocketError> {
                 if conn_state.is_subscribed() {
                     return Err(WebSocketError::AlreadySubscribed);
                 }
 
-                let session_id: SessionId = join.session_id.clone().into();
-
                 // Check if the session exists
                 if state.sessions.get(&session_id).await.is_err() {
-                    return Err(WebSocketError::SessionNotFound(join.session_id.clone()));
+                    return Err(WebSocketError::SessionNotFound(session_id.to_string()));
                 }
 
                 conn_state.session_id = Some(session_id.clone());
@@ -268,9 +264,8 @@ pub mod handlers {
                     let state = state.clone();
                     let session_id = session_id.clone();
                     async move {
-                        let notifier = state.pub_sub.subscribe(session_id.clone()).await;
+                        let _ = state.pub_sub.subscribe(session_id.clone()).await;
                         loop {
-                            notifier.notified().await;
                             if let Some(msg) = state.pub_sub.consume_event(&session_id).await {
                                 if let Ok(json) = serde_json::to_string(&*msg) {
                                     if outbound_tx.send(json).is_err() {
@@ -283,6 +278,61 @@ pub mod handlers {
                 });
 
                 conn_state.task_handle = Some(task_handle);
+                Ok(())
+            }
+
+            async fn handle_join_session(
+                join: &kiko::data::JoinSession,
+                state: &Arc<crate::AppState>,
+                _conn_state: &mut ConnectionState,
+            ) -> Result<WebSocketResponse, WebSocketError> {
+                log::info!("Joining session: {:?}", join);
+
+                let session_id: SessionId = join.session_id.clone().into();
+
+                // Check if the session exists
+                let mut session = state
+                    .sessions
+                    .get(&session_id)
+                    .await
+                    .map_err(|_| WebSocketError::SessionNotFound(join.session_id.clone()))?;
+
+                // Add participant to the session
+                let participant = kiko::data::Participant::new(
+                    kiko::id::ParticipantId::new(),
+                    join.participant_name.clone(),
+                );
+                session.add_participant(participant);
+
+                // Update the session in storage
+                state
+                    .sessions
+                    .update(&session_id, &session)
+                    .await
+                    .map_err(|_| {
+                        WebSocketError::InvalidMessage("Failed to update session".to_string())
+                    })?;
+
+                // Broadcast the updated session to all subscribers
+                let update_message = kiko::data::SessionMessage::SessionUpdate(session);
+                state.pub_sub.publish(session_id, update_message).await;
+
+                Ok(WebSocketResponse::Success(
+                    "Successfully joined session".to_string(),
+                ))
+            }
+
+            async fn handle_subscribe_to_session(
+                subscribe: &kiko::data::SubscribeToSession,
+                state: &Arc<crate::AppState>,
+                conn_state: &mut ConnectionState,
+            ) -> Result<WebSocketResponse, WebSocketError> {
+                log::info!("Subscribing to session: {:?}", subscribe);
+
+                let session_id: SessionId = subscribe.session_id.clone().into();
+
+                // Just setup subscription without joining
+                setup_subscription(session_id, state, conn_state).await?;
 
                 Ok(WebSocketResponse::SubscriptionStarted)
             }
@@ -458,6 +508,9 @@ pub mod handlers {
                     }
                     kiko::data::SessionMessage::JoinSession(join) => {
                         handle_join_session(join, state, conn_state).await
+                    }
+                    kiko::data::SessionMessage::SubscribeToSession(subscribe) => {
+                        handle_subscribe_to_session(subscribe, state, conn_state).await
                     }
                     kiko::data::SessionMessage::AddParticipant(add) => {
                         handle_add_participant(add, state).await

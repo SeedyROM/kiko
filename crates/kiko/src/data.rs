@@ -101,6 +101,11 @@ pub struct JoinSession {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SubscribeToSession {
+    pub session_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AddParticipant {
     pub session_id: String,
     pub participant_name: String,
@@ -116,6 +121,7 @@ pub struct RemoveParticipant {
 pub enum SessionMessage {
     CreateSession(CreateSession),
     JoinSession(JoinSession),
+    SubscribeToSession(SubscribeToSession),
     AddParticipant(AddParticipant),
     RemoveParticipant(RemoveParticipant),
     SessionUpdate(Session),

@@ -3,7 +3,7 @@ use web_sys::{InputEvent, KeyboardEvent, MouseEvent};
 
 use kiko::{
     async_callback,
-    data::{JoinSession, Session, SessionMessage},
+    data::{JoinSession, Session, SessionMessage, SubscribeToSession},
     log::info,
     serde_json,
 };
@@ -30,6 +30,7 @@ pub fn session_page(props: &SessionProps) -> Html {
     let session_exists = use_state(|| false);
     let participant_name = use_state(String::new);
     let is_joined = use_state(|| false);
+    let is_subscribed = use_state(|| false);
 
     // WebSocket connection
     let ws = use_websocket("ws://localhost:3030/api/v1/ws");
@@ -127,26 +128,46 @@ pub fn session_page(props: &SessionProps) -> Html {
         });
     }
 
-    // Auto-connect to WebSocket for session updates
+    // Auto-subscribe to WebSocket for session updates
     {
         let ws_connect = ws.connect.clone();
+        let ws_send = ws.send.clone();
         let ws_state = ws.state.clone();
         let session_exists = *session_exists;
+        let is_subscribed = is_subscribed.clone();
+        let session_id = session_id.clone();
+        let ws_error = ws_error.clone();
 
-        use_effect_with((ws_state, session_exists), move |(state, exists)| {
-            // Only attempt websocket connection if session exists
-            if !*exists {
+        use_effect_with((ws_state.clone(), session_exists, *is_subscribed), move |(state, exists, subscribed)| {
+            // Only attempt websocket connection and subscription if session exists and not already subscribed
+            if !*exists || *subscribed {
                 return;
             }
 
             if state == &ConnectionState::Disconnected {
                 info!("🔌 Auto-connecting to WebSocket for session updates...");
                 ws_connect.emit(());
+            } else if state == &ConnectionState::Connected {
+                info!("📡 Auto-subscribing to session for updates...");
+                ws_error.set(None);
+                
+                // Send subscribe message for observation
+                let subscribe_message = SessionMessage::SubscribeToSession(SubscribeToSession {
+                    session_id: session_id.clone(),
+                });
+
+                if let Ok(message_text) = serde_json::to_string(&subscribe_message) {
+                    ws_send.emit(message_text);
+                    info!("📡 Sent subscribe message for session: {}", session_id);
+                    is_subscribed.set(true);
+                } else {
+                    ws_error.set(Some("Failed to serialize subscribe message".to_string()));
+                }
             }
         });
     }
 
-    // Join session callback (for participation)
+    // Join session callback (for participation - separate from observation)
     let join_session = {
         let ws_send = ws.send.clone();
         let ws_state = ws.state.clone();
@@ -174,8 +195,8 @@ pub fn session_page(props: &SessionProps) -> Html {
 
             ws_error.set(None);
             
-            // Send join message for participation
-            info!("📤 Joining session as participant...");
+            // Send join message for participation (this adds the participant to the session)
+            info!("👥 Joining session as participant...");
             let join_message = SessionMessage::JoinSession(JoinSession {
                 session_id: session_id.clone(),
                 participant_name: participant_name.trim().to_string(),
@@ -183,7 +204,7 @@ pub fn session_page(props: &SessionProps) -> Html {
 
             if let Ok(message_text) = serde_json::to_string(&join_message) {
                 ws_send.emit(message_text);
-                info!("📤 Sent join message for session: {}", session_id);
+                info!("👥 Sent join message for session: {}", session_id);
                 is_joined.set(true);
             } else {
                 ws_error.set(Some("Failed to serialize join message".to_string()));
@@ -364,7 +385,7 @@ pub fn session_page(props: &SessionProps) -> Html {
                                                 </div>
                                                 <div class="ml-3 flex-1">
                                                     <h3 class="text-sm font-medium text-blue-800">{ "Join as Participant" }</h3>
-                                                    <p class="text-sm text-blue-700 mt-1 mb-4">{ "Enter your name to actively participate in this session. You'll receive updates automatically." }</p>
+                                                    <p class="text-sm text-blue-700 mt-1 mb-4">{ "You're currently observing this session. Enter your name to become an active participant." }</p>
                                                     <div class="flex items-end space-x-3">
                                                         <div class="flex-1">
                                                             <label for="participant-name" class="block text-xs font-medium text-blue-700 mb-1">{ "Your Name" }</label>
