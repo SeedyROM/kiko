@@ -172,21 +172,6 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                 }
             </div>
 
-            // Session Actions (placeholder for future features)
-            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">{ "Session Actions" }</h3>
-                <div class="space-y-3">
-                    <button
-                        class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                        disabled={!is_active}
-                    >
-                        { "Join Session" }
-                    </button>
-                    <div class="text-sm text-gray-500">
-                        { if is_active { "Click to join this pointing poker session" } else { "This session has expired" } }
-                    </div>
-                </div>
-            </div>
         </div>
     }
 }

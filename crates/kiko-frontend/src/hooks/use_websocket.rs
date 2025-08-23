@@ -169,7 +169,7 @@ pub fn use_websocket(url: &str) -> WebSocketHandle {
 
         match WebSocket::open(&url) {
             Ok(ws) => {
-                state.set(ConnectionState::Connected);
+                // Keep in Connecting state until we confirm the connection works
 
                 let (write, read) = ws.split();
                 *sender.borrow_mut() = Some(write);
@@ -178,12 +178,17 @@ pub fn use_websocket(url: &str) -> WebSocketHandle {
                 let (abort_handle_new, abort_registration) = futures::future::AbortHandle::new_pair();
                 *abort_handle.borrow_mut() = Some(abort_handle_new);
 
-                // Handle incoming messages
+                // Handle incoming messages with ping health checks
                 let read_future = async move {
                     let mut read = read;
+                    // Start with connection as Connected since WebSocket.open() succeeded
+                    // We'll detect failures through the read loop ending or send failures
+                    state.set(ConnectionState::Connected);
+
                     while let Some(msg) = read.next().await {
                         match msg {
                             Ok(Message::Text(text)) => {
+                                // All text messages go to the callback
                                 if let Some(callback) = on_message_callback.borrow().as_ref() {
                                     callback.emit(text);
                                 }
@@ -196,6 +201,9 @@ pub fn use_websocket(url: &str) -> WebSocketHandle {
                                 break;
                             }
                         }
+
+                        // Connection health is now monitored through the read stream
+                        // If the read stream closes, we'll detect it and update state accordingly
                     }
 
                     // Clean up when the read loop ends

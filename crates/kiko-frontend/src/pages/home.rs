@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use crate::components::{CreateSession, WebSocketChat};
+use crate::components::CreateSession;
 
 #[function_component(HomePage)]
 pub fn home_page() -> Html {
@@ -12,9 +12,6 @@ pub fn home_page() -> Html {
             <div class="mb-8">
                 <CreateSession />
             </div>
-
-            // WebSocket Section
-            <WebSocketChat url="ws://127.0.0.1:3030/api/v1/ws" />
         </div>
     }
 }

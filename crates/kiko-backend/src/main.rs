@@ -173,6 +173,7 @@ pub mod handlers {
                 },
                 response::Response,
             };
+            use kiko::errors::WebSocketError;
             use kiko::{id::SessionId, tracing};
             use kiko::{log, serde_json};
             use tokio::sync::mpsc;
@@ -180,6 +181,174 @@ pub mod handlers {
             use std::{net::SocketAddr, sync::Arc};
 
             use crate::services::SessionService;
+
+            #[derive(Debug)]
+            pub enum WebSocketResponse {
+                Success(String),
+                SubscriptionStarted,
+                None,
+            }
+
+            pub struct ConnectionState {
+                session_id: Option<SessionId>,
+                task_handle: Option<tokio::task::JoinHandle<()>>,
+                outbound_rx: Option<mpsc::UnboundedReceiver<String>>,
+            }
+
+            impl ConnectionState {
+                pub fn new() -> Self {
+                    Self {
+                        session_id: None,
+                        task_handle: None,
+                        outbound_rx: None,
+                    }
+                }
+
+                pub fn is_subscribed(&self) -> bool {
+                    self.task_handle.is_some()
+                }
+
+                pub fn cleanup_subscription(&mut self) {
+                    if let Some(handle) = &self.task_handle {
+                        if !handle.is_finished() {
+                            handle.abort();
+                        }
+                    }
+                    self.task_handle = None;
+                    self.outbound_rx = None;
+                }
+            }
+
+            impl Default for ConnectionState {
+                fn default() -> Self {
+                    Self::new()
+                }
+            }
+
+            async fn handle_create_session(
+                _create: &kiko::data::CreateSession,
+                _state: &Arc<crate::AppState>,
+            ) -> Result<WebSocketResponse, WebSocketError> {
+                log::info!("Creating session: {:?}", _create);
+                // TODO: Implement session creation logic
+                Ok(WebSocketResponse::Success(
+                    "Session creation not implemented".to_string(),
+                ))
+            }
+
+            async fn handle_join_session(
+                join: &kiko::data::JoinSession,
+                state: &Arc<crate::AppState>,
+                conn_state: &mut ConnectionState,
+            ) -> Result<WebSocketResponse, WebSocketError> {
+                log::info!("Joining session: {:?}", join);
+
+                if conn_state.is_subscribed() {
+                    return Err(WebSocketError::AlreadySubscribed);
+                }
+
+                let session_id: SessionId = join.session_id.clone().into();
+
+                // Check if the session exists
+                if state.sessions.get(&session_id).await.is_err() {
+                    return Err(WebSocketError::SessionNotFound(join.session_id.clone()));
+                }
+
+                conn_state.session_id = Some(session_id.clone());
+
+                // Subscribe to the session
+                let _ = state.pub_sub.subscribe(session_id.clone()).await;
+
+                // Create a channel for sending messages to the WebSocket
+                let (outbound_tx, rx) = mpsc::unbounded_channel::<String>();
+                conn_state.outbound_rx = Some(rx);
+
+                // Spawn a task to listen for messages and notify the WebSocket
+                let task_handle = tokio::spawn({
+                    let state = state.clone();
+                    let session_id = session_id.clone();
+                    async move {
+                        let notifier = state.pub_sub.subscribe(session_id.clone()).await;
+                        loop {
+                            notifier.notified().await;
+                            if let Some(msg) = state.pub_sub.consume_event(&session_id).await {
+                                if let Ok(json) = serde_json::to_string(&*msg) {
+                                    if outbound_tx.send(json).is_err() {
+                                        break; // Channel closed
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                conn_state.task_handle = Some(task_handle);
+
+                Ok(WebSocketResponse::SubscriptionStarted)
+            }
+
+            async fn handle_add_participant(
+                add: &kiko::data::AddParticipant,
+                _state: &Arc<crate::AppState>,
+            ) -> Result<WebSocketResponse, WebSocketError> {
+                log::info!("Adding participant: {:?}", add);
+                // TODO: Implement participant addition logic
+                Ok(WebSocketResponse::Success(
+                    "Participant addition not implemented".to_string(),
+                ))
+            }
+
+            async fn handle_remove_participant(
+                remove: &kiko::data::RemoveParticipant,
+                _state: &Arc<crate::AppState>,
+            ) -> Result<WebSocketResponse, WebSocketError> {
+                log::info!("Removing participant: {:?}", remove);
+                // TODO: Implement participant removal logic
+                Ok(WebSocketResponse::Success(
+                    "Participant removal not implemented".to_string(),
+                ))
+            }
+
+            async fn handle_session_update(
+                update: &kiko::data::Session,
+                _state: &Arc<crate::AppState>,
+            ) -> Result<WebSocketResponse, WebSocketError> {
+                log::info!("Session update: {:?}", update);
+                // TODO: Implement session update logic
+                Ok(WebSocketResponse::Success(
+                    "Session update not implemented".to_string(),
+                ))
+            }
+
+            async fn send_error(socket: &mut WebSocket, error: &WebSocketError) -> bool {
+                let error_msg = error.to_string();
+                log::error!("{}", error_msg);
+
+                if let Err(e) = socket.send(ws::Message::Text(error_msg.into())).await {
+                    log::error!("Failed to send error message: {}", e);
+                    return false; // Connection broken
+                }
+                true
+            }
+
+            async fn send_response(socket: &mut WebSocket, response: WebSocketResponse) -> bool {
+                match response {
+                    WebSocketResponse::Success(msg) => {
+                        if let Err(e) = socket.send(ws::Message::Text(msg.into())).await {
+                            log::error!("Failed to send success message: {}", e);
+                            return false;
+                        }
+                    }
+                    WebSocketResponse::SubscriptionStarted => {
+                        log::debug!("Subscription started successfully");
+                        // No message sent to client for this response type
+                    }
+                    WebSocketResponse::None => {
+                        // No response needed
+                    }
+                }
+                true
+            }
 
             /// Handler to upgrade HTTP connection to WebSocket
             pub async fn upgrade(
@@ -199,191 +368,143 @@ pub mod handlers {
                 state: Arc<crate::AppState>,
             ) {
                 log::debug!("Connection established");
-                let mut session_id: Option<SessionId> = None;
-                let mut task_handle = Option::<tokio::task::JoinHandle<()>>::None;
-                let mut outbound_rx: Option<mpsc::UnboundedReceiver<String>> = None;
+                let mut conn_state = ConnectionState::new();
 
-                // Echo messages back to client
                 loop {
                     tokio::select! {
                         // Handle incoming WebSocket messages
                         msg = socket.recv() => {
-                            match msg {
-                                Some(Ok(ws::Message::Text(text))) => {
-                                    match serde_json::from_str::<kiko::data::SessionMessage>(&text) {
-                                        Ok(session_msg) => {
-                                            log::debug!(
-                                                "Received message from {}: {:?}",
-                                                client_addr,
-                                                session_msg
-                                            );
-
-                                            match &session_msg {
-                                                kiko::data::SessionMessage::CreateSession(create) => {
-                                                    log::info!("Creating session: {:?}", create);
-                                                    // Handle creating session logic here
-                                                }
-                                                kiko::data::SessionMessage::JoinSession(join) => {
-                                                    log::info!("Joining session: {:?}", join);
-                                                    session_id = Some(join.session_id.clone().into());
-
-                                                    // Check if the session exists
-                                                    // If not, send an error message and continue
-                                                    if state
-                                                        .sessions
-                                                        .get(&join.session_id.clone().into())
-                                                        .await
-                                                        .is_err()
-                                                    {
-                                                        let error_msg = format!(
-                                                            "Session {} not found",
-                                                            join.session_id
-                                                        );
-                                                        log::error!("{}", error_msg);
-                                                        if let Err(e) = socket
-                                                            .send(ws::Message::Text(error_msg.into()))
-                                                            .await
-                                                        {
-                                                            log::error!(
-                                                                "Failed to send error message: {}",
-                                                                e
-                                                            );
-                                                        }
-                                                        session_id = None;
-                                                        continue;
-                                                    }
-
-                                                    // Check if already subscribed
-                                                    if task_handle.is_some() {
-                                                        log::warn!(
-                                                            "Already subscribed to a session, ignoring join request"
-                                                        );
-                                                        continue;
-                                                    }
-
-                                                    // Handle joining session logic here
-                                                    let _ = state
-                                                        .pub_sub
-                                                        .subscribe(session_id.clone().unwrap())
-                                                        .await;
-
-                                                    // Create a channel for sending messages to the WebSocket
-                                                    let (outbound_tx, rx) = mpsc::unbounded_channel::<String>();
-                                                    outbound_rx = Some(rx);
-
-                                                    // Spawn a task to listen for messages and notify the WebSocket
-                                                    task_handle = Some(tokio::spawn({
-                                                        let state = state.clone();
-                                                        let session_id = session_id.clone().unwrap();
-                                                        async move {
-                                                            let notifier = state
-                                                                .pub_sub
-                                                                .subscribe(session_id.clone())
-                                                                .await;
-                                                            loop {
-                                                                notifier.notified().await;
-                                                                if let Some(msg) = state
-                                                                    .pub_sub
-                                                                    .consume_event(&session_id)
-                                                                    .await
-                                                                {
-                                                                    if let Ok(json) =
-                                                                        serde_json::to_string(&*msg)
-                                                                    {
-                                                                        if outbound_tx.send(json).is_err() {
-                                                                            break; // Channel closed
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }));
-                                                }
-                                                kiko::data::SessionMessage::AddParticipant(add) => {
-                                                    log::info!("Adding participant: {:?}", add);
-                                                    // Handle adding participant logic here
-                                                }
-                                                kiko::data::SessionMessage::RemoveParticipant(remove) => {
-                                                    log::info!("Removing participant: {:?}", remove);
-                                                    // Handle removing participant logic here
-                                                }
-                                                kiko::data::SessionMessage::SessionUpdate(update) => {
-                                                    log::info!("Session update: {:?}", update);
-                                                    // Handle session update logic here
-                                                }
-                                            }
-                                        }
-                                        Err(e) => {
-                                            log::error!("Failed to parse message: {}", e);
-                                            if let Err(e) = socket
-                                                .send(ws::Message::Text("Invalid message format".into()))
-                                                .await
-                                            {
-                                                log::error!("Failed to send error message: {}", e);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                                Some(Ok(ws::Message::Close(_))) => {
-                                    log::debug!("Connection closed by client");
-                                    break;
-                                }
-                                Some(Err(e)) => {
-                                    log::error!("WebSocket error: {}", e);
-                                    break;
-                                }
-                                None => {
-                                    log::debug!("WebSocket connection closed");
-                                    break;
-                                }
-                                _ => {
-                                    // Handle other message types (Binary, Ping, Pong) if needed
-                                }
+                            if !handle_incoming_message(msg, &mut socket, &mut conn_state, &state, client_addr).await {
+                                break;
                             }
                         }
 
                         // Handle outbound messages from the subscription task
                         outbound_msg = async {
-                            match &mut outbound_rx {
+                            match &mut conn_state.outbound_rx {
                                 Some(rx) => rx.recv().await,
                                 None => std::future::pending().await,
                             }
                         } => {
-                            match outbound_msg {
-                                Some(json) => {
-                                    if let Err(e) = socket.send(ws::Message::Text(json.into())).await {
-                                        log::error!("Failed to send message to WebSocket: {}", e);
-                                        break;
-                                    }
-                                }
-                                None => {
-                                    log::debug!("Outbound channel closed");
-                                    break;
-                                }
+                            if !handle_outbound_message(outbound_msg, &mut socket).await {
+                                break;
                             }
                         }
                     }
                 }
 
                 log::debug!("Cleaning up WebSocket connection");
+                cleanup_connection(&mut conn_state, &state).await;
+                log::debug!("Connection ended");
+            }
 
-                // Clean up on disconnect
-                if let Some(handle) = &task_handle {
-                    if handle.is_finished() {
-                        log::debug!("Notification task finished");
-                    } else {
-                        log::debug!("Aborting notification task");
-                        handle.abort();
+            async fn handle_incoming_message(
+                msg: Option<Result<ws::Message, axum::Error>>,
+                socket: &mut WebSocket,
+                conn_state: &mut ConnectionState,
+                state: &Arc<crate::AppState>,
+                client_addr: SocketAddr,
+            ) -> bool {
+                match msg {
+                    Some(Ok(ws::Message::Text(text))) => {
+                        handle_text_message(
+                            text.to_string(),
+                            socket,
+                            conn_state,
+                            state,
+                            client_addr,
+                        )
+                        .await
+                    }
+                    Some(Ok(ws::Message::Close(_))) => {
+                        log::debug!("Connection closed by client");
+                        false
+                    }
+                    Some(Err(e)) => {
+                        log::error!("WebSocket error: {}", e);
+                        false
+                    }
+                    None => {
+                        log::debug!("WebSocket connection closed");
+                        false
+                    }
+                    _ => {
+                        // Handle other message types (Binary, Ping, Pong) if needed
+                        true
                     }
                 }
+            }
 
-                // Clean up session subscription
-                if let Some(session_id) = &session_id {
-                    state.pub_sub.cleanup_session(&session_id.clone()).await;
+            async fn handle_text_message(
+                text: String,
+                socket: &mut WebSocket,
+                conn_state: &mut ConnectionState,
+                state: &Arc<crate::AppState>,
+                client_addr: SocketAddr,
+            ) -> bool {
+                let session_msg = match serde_json::from_str::<kiko::data::SessionMessage>(&text) {
+                    Ok(msg) => msg,
+                    Err(e) => {
+                        let error = WebSocketError::InvalidMessage(e.to_string());
+                        return send_error(socket, &error).await;
+                    }
+                };
+
+                log::debug!("Received message from {}: {:?}", client_addr, session_msg);
+
+                let result = match &session_msg {
+                    kiko::data::SessionMessage::CreateSession(create) => {
+                        handle_create_session(create, state).await
+                    }
+                    kiko::data::SessionMessage::JoinSession(join) => {
+                        handle_join_session(join, state, conn_state).await
+                    }
+                    kiko::data::SessionMessage::AddParticipant(add) => {
+                        handle_add_participant(add, state).await
+                    }
+                    kiko::data::SessionMessage::RemoveParticipant(remove) => {
+                        handle_remove_participant(remove, state).await
+                    }
+                    kiko::data::SessionMessage::SessionUpdate(update) => {
+                        handle_session_update(update, state).await
+                    }
+                };
+
+                match result {
+                    Ok(response) => send_response(socket, response).await,
+                    Err(error) => send_error(socket, &error).await,
                 }
+            }
 
-                log::debug!("Connection ended");
+            async fn handle_outbound_message(
+                outbound_msg: Option<String>,
+                socket: &mut WebSocket,
+            ) -> bool {
+                match outbound_msg {
+                    Some(json) => {
+                        if let Err(e) = socket.send(ws::Message::Text(json.into())).await {
+                            log::error!("Failed to send message to WebSocket: {}", e);
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    None => {
+                        log::debug!("Outbound channel closed");
+                        false
+                    }
+                }
+            }
+
+            async fn cleanup_connection(
+                conn_state: &mut ConnectionState,
+                state: &Arc<crate::AppState>,
+            ) {
+                conn_state.cleanup_subscription();
+
+                if let Some(session_id) = &conn_state.session_id {
+                    state.pub_sub.cleanup_session(session_id).await;
+                }
             }
         }
 
