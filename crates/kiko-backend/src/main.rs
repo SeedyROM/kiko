@@ -264,8 +264,9 @@ pub mod handlers {
                     let state = state.clone();
                     let session_id = session_id.clone();
                     async move {
-                        let _ = state.pub_sub.subscribe(session_id.clone()).await;
+                        let notifier = state.pub_sub.subscribe(session_id.clone()).await;
                         loop {
+                            notifier.notified().await; // Wait for notification
                             if let Some(msg) = state.pub_sub.consume_event(&session_id).await {
                                 if let Ok(json) = serde_json::to_string(&*msg) {
                                     if outbound_tx.send(json).is_err() {
