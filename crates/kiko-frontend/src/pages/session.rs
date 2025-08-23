@@ -1,8 +1,17 @@
 use yew::prelude::*;
 
-use kiko::{async_callback, data::Session, log::info};
+use kiko::{
+    async_callback,
+    data::{JoinSession, Session, SessionMessage},
+    log::info,
+    serde_json,
+};
 
-use crate::{components::SessionView, providers::api};
+use crate::{
+    components::SessionView,
+    hooks::{ConnectionState, use_websocket},
+    providers::api,
+};
 
 #[derive(Properties, PartialEq)]
 pub struct SessionProps {
@@ -16,7 +25,12 @@ pub fn session_page(props: &SessionProps) -> Html {
     let loading = use_state(|| true);
     let error_msg = use_state(|| None::<String>);
 
+    // WebSocket connection
+    let ws = use_websocket("ws://localhost:3030/api/v1/ws");
+
     let session_id = props.id.clone();
+
+    // Initial session load
     use_effect_with(session_id.clone(), {
         let api = api.clone();
         let session_data = session_data.clone();
@@ -50,6 +64,70 @@ pub fn session_page(props: &SessionProps) -> Html {
         }
     });
 
+    // Set up WebSocket message handler
+    {
+        let session_data = session_data.clone();
+        let ws_set_on_message = ws.set_on_message.clone();
+
+        use_effect(move || {
+            let message_callback = Callback::from({
+                let session_data = session_data.clone();
+                move |text: String| {
+                    info!("📨 Received WebSocket message: {}", text);
+
+                    // Try to parse as SessionMessage
+                    match serde_json::from_str::<SessionMessage>(&text) {
+                        Ok(SessionMessage::SessionUpdate(updated_session)) => {
+                            info!("🔄 Session update received");
+                            session_data.set(Some(updated_session));
+                        }
+                        Ok(other_msg) => {
+                            info!("📥 Other message type received: {:?}", other_msg);
+                        }
+                        Err(e) => {
+                            info!("❌ Failed to parse session message: {:?}", e);
+                        }
+                    }
+                }
+            });
+
+            ws_set_on_message.emit(message_callback);
+        });
+    }
+
+    // Auto-connect and join session when WebSocket is ready
+    {
+        let session_id = session_id.clone();
+        let ws_connect = ws.connect.clone();
+        let ws_send = ws.send.clone();
+        let ws_state = ws.state.clone();
+
+        use_effect_with((session_id.clone(), ws_state), move |(id, state)| {
+            match state {
+                ConnectionState::Disconnected => {
+                    info!("🔌 Connecting to WebSocket...");
+                    ws_connect.emit(());
+                }
+                ConnectionState::Connected => {
+                    info!("✅ WebSocket connected, joining session...");
+                    let join_message = SessionMessage::JoinSession(JoinSession {
+                        session_id: id.clone(),
+                        participant_name: "Anonymous User".to_string(), // TODO: Get from user input
+                    });
+
+                    if let Ok(message_text) = serde_json::to_string(&join_message) {
+                        ws_send.emit(message_text);
+                        info!("📤 Sent join message for session: {}", id);
+                    }
+                }
+                ConnectionState::Error(err) => {
+                    info!("❌ WebSocket error: {}", err);
+                }
+                _ => {}
+            }
+        });
+    };
+
     let refresh_session = async_callback!([api, session_data, loading, error_msg, session_id] {
         loading.set(true);
         error_msg.set(None);
@@ -69,7 +147,25 @@ pub fn session_page(props: &SessionProps) -> Html {
     html! {
         <div class="p-8 max-w-4xl mx-auto">
             <div class="mb-6">
-                <h1 class="text-3xl font-bold text-gray-900">{ "Session Details" }</h1>
+                <div class="flex justify-between items-center">
+                    <h1 class="text-3xl font-bold text-gray-900">{ "Session Details" }</h1>
+                    <div class="flex items-center space-x-2">
+                        <div class={classes!("w-3", "h-3", "rounded-full", match ws.state {
+                            ConnectionState::Connected => "bg-green-500",
+                            ConnectionState::Connecting => "bg-yellow-500",
+                            ConnectionState::Disconnected => "bg-gray-500",
+                            ConnectionState::Error(_) => "bg-red-500",
+                        })}></div>
+                        <span class="text-sm text-gray-600">{
+                            match &ws.state {
+                                ConnectionState::Connected => "Connected",
+                                ConnectionState::Connecting => "Connecting...",
+                                ConnectionState::Disconnected => "Disconnected",
+                                ConnectionState::Error(_) => "Error",
+                            }
+                        }</span>
+                    </div>
+                </div>
             </div>
 
             {

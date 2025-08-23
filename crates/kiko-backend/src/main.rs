@@ -1,24 +1,26 @@
 pub mod messaging;
 pub mod services;
 
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use axum::{
     Router,
     http::{Method, header},
     routing::{get, post},
 };
-use tokio::signal;
+use chrono::DateTime;
+use tokio::{net::TcpListener, signal};
 use tower_http::cors::CorsLayer;
 
 use kiko::errors::Report;
 use kiko::log;
 
-use crate::services::SessionServiceInMemory;
+use crate::{messaging::PubSub, services::SessionServiceInMemory};
 
 pub struct AppState {
-    started_at: chrono::DateTime<chrono::Utc>,
+    started_at: DateTime<chrono::Utc>,
     sessions: SessionServiceInMemory,
+    pub_sub: PubSub,
 }
 
 #[tokio::main]
@@ -30,13 +32,14 @@ async fn main() -> Result<(), Report> {
     let app_state = Arc::new(AppState {
         started_at: chrono::Utc::now(),
         sessions: SessionServiceInMemory::new(),
+        pub_sub: PubSub::new(),
     });
 
     // Setup the routes
     let app = setup_routes(app_state);
 
     // Setup the server
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3030").await?;
+    let listener = TcpListener::bind("127.0.0.1:3030").await?;
     log::info!("Starting server on http://{}", listener.local_addr()?);
     log::info!("Press Ctrl+C to stop the server");
 
@@ -44,7 +47,7 @@ async fn main() -> Result<(), Report> {
     // IMPORTANT: Use into_make_service_with_connect_info to preserve client connection info
     axum::serve(
         listener,
-        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+        app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown_signal())
     .await?;
@@ -63,7 +66,9 @@ async fn shutdown_signal() {
 
     #[cfg(unix)]
     let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
+        use tokio::signal::unix::SignalKind;
+
+        signal::unix::signal(SignalKind::terminate())
             .expect("failed to install signal handler")
             .recv()
             .await;
@@ -128,7 +133,7 @@ pub mod handlers {
         pub mod session {
             use std::sync::Arc;
 
-            use axum::{Json, extract::State, response::IntoResponse};
+            use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 
             use crate::services::SessionService;
             use kiko::data::CreateSession;
@@ -139,9 +144,9 @@ pub mod handlers {
                 Json(payload): Json<CreateSession>,
             ) -> impl IntoResponse {
                 match state.sessions.create(payload).await {
-                    Ok(session) => (axum::http::StatusCode::CREATED, Json(session)).into_response(),
+                    Ok(session) => (StatusCode::CREATED, Json(session)).into_response(),
                     Err(_) => (
-                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        StatusCode::INTERNAL_SERVER_ERROR,
                         "Failed to create session",
                     )
                         .into_response(),
@@ -154,10 +159,8 @@ pub mod handlers {
                 axum::extract::Path(session_id): axum::extract::Path<String>,
             ) -> impl IntoResponse {
                 match state.sessions.get(&session_id.into()).await {
-                    Ok(session) => (axum::http::StatusCode::OK, Json(session)).into_response(),
-                    Err(_) => {
-                        (axum::http::StatusCode::NOT_FOUND, "Session not found").into_response()
-                    }
+                    Ok(session) => (StatusCode::OK, Json(session)).into_response(),
+                    Err(_) => (StatusCode::NOT_FOUND, "Session not found").into_response(),
                 }
             }
         }
@@ -165,51 +168,145 @@ pub mod handlers {
         pub mod websocket {
             use axum::{
                 extract::{
-                    ConnectInfo,
+                    ConnectInfo, State,
                     ws::{self, WebSocket, WebSocketUpgrade},
                 },
                 response::Response,
             };
-            use kiko::log;
-            use kiko::tracing;
+            use kiko::{id::SessionId, tracing};
+            use kiko::{log, serde_json};
 
-            use std::net::SocketAddr;
+            use std::{net::SocketAddr, sync::Arc};
+
+            use crate::services::SessionService;
 
             /// Handler to upgrade HTTP connection to WebSocket
             pub async fn upgrade(
                 ws: WebSocketUpgrade,
                 ConnectInfo(addr): ConnectInfo<SocketAddr>,
+                State(state): State<Arc<crate::AppState>>,
             ) -> Response {
                 // Pass the client address to the handler
-                ws.on_upgrade(move |socket| handle_socket(socket, addr))
+                ws.on_upgrade(move |socket| handle_socket(socket, addr, state))
             }
 
             /// Handle WebSocket connection
-            #[tracing::instrument(name = "websocket", skip(socket))]
-            async fn handle_socket(mut socket: WebSocket, client_addr: SocketAddr) {
+            #[tracing::instrument(name = "websocket", skip(socket, state))]
+            async fn handle_socket(
+                mut socket: WebSocket,
+                client_addr: SocketAddr,
+                state: Arc<crate::AppState>,
+            ) {
                 log::debug!("Connection established");
-
-                // Send a welcome message with client info
-                let welcome_msg = format!(
-                    "Hello WebSocket! Connected from {}:{}",
-                    client_addr.ip(),
-                    client_addr.port()
-                );
-
-                if let Err(e) = socket.send(ws::Message::Text(welcome_msg.into())).await {
-                    log::error!("Failed to send welcome message: {}", e);
-                    return;
-                }
+                let mut session_id: Option<SessionId> = None;
+                let mut task_handle = Option::<tokio::task::JoinHandle<()>>::None;
 
                 // Echo messages back to client
                 while let Some(msg) = socket.recv().await {
                     match msg {
                         Ok(ws::Message::Text(text)) => {
-                            log::debug!("Received text message: {}", text);
-                            let response = format!("Echo: {text}");
-                            if let Err(e) = socket.send(ws::Message::Text(response.into())).await {
-                                log::error!("Failed to send echo response: {}", e);
-                                break;
+                            match serde_json::from_str::<kiko::data::SessionMessage>(&text) {
+                                Ok(session_msg) => {
+                                    log::debug!(
+                                        "Received message from {}: {:?}",
+                                        client_addr,
+                                        session_msg
+                                    );
+
+                                    match &session_msg {
+                                        kiko::data::SessionMessage::CreateSession(create) => {
+                                            log::info!("Creating session: {:?}", create);
+                                            // Handle creating session logic here
+                                        }
+                                        kiko::data::SessionMessage::JoinSession(join) => {
+                                            log::info!("Joining session: {:?}", join);
+                                            session_id = Some(join.session_id.clone().into());
+
+                                            // Check if the session exists
+                                            // If not, send an error message and continue
+                                            if state
+                                                .sessions
+                                                .get(&join.session_id.clone().into())
+                                                .await
+                                                .is_err()
+                                            {
+                                                let error_msg = format!(
+                                                    "Session {} not found",
+                                                    join.session_id
+                                                );
+                                                log::error!("{}", error_msg);
+                                                if let Err(e) = socket
+                                                    .send(ws::Message::Text(error_msg.into()))
+                                                    .await
+                                                {
+                                                    log::error!(
+                                                        "Failed to send error message: {}",
+                                                        e
+                                                    );
+                                                }
+                                                session_id = None;
+                                                continue;
+                                            }
+
+                                            // Check if already subscribed
+                                            if task_handle.is_some() {
+                                                log::warn!(
+                                                    "Already subscribed to a session, ignoring join request"
+                                                );
+                                                continue;
+                                            }
+
+                                            // Handle joining session logic here
+                                            let _ = state
+                                                .pub_sub
+                                                .subscribe(session_id.clone().unwrap())
+                                                .await;
+
+                                            // Spawn a task to listen for messages and notify the WebSocket
+                                            task_handle = Some(tokio::spawn({
+                                                let state = state.clone();
+                                                let session_id = session_id.clone().unwrap();
+                                                async move {
+                                                    loop {
+                                                        if let Some(msg) = state
+                                                            .pub_sub
+                                                            .consume_event(&session_id)
+                                                            .await
+                                                        {
+                                                            log::info!(
+                                                                "Publishing message to session {}: {:?}",
+                                                                session_id,
+                                                                msg
+                                                            );
+                                                        }
+                                                    }
+                                                }
+                                            }));
+                                        }
+                                        kiko::data::SessionMessage::AddParticipant(add) => {
+                                            log::info!("Adding participant: {:?}", add);
+                                            // Handle adding participant logic here
+                                        }
+                                        kiko::data::SessionMessage::RemoveParticipant(remove) => {
+                                            log::info!("Removing participant: {:?}", remove);
+                                            // Handle removing participant logic here
+                                        }
+                                        kiko::data::SessionMessage::SessionUpdate(update) => {
+                                            log::info!("Session update: {:?}", update);
+                                            // Handle session update logic here
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    log::error!("Failed to parse message: {}", e);
+                                    if let Err(e) = socket
+                                        .send(ws::Message::Text("Invalid message format".into()))
+                                        .await
+                                    {
+                                        log::error!("Failed to send error message: {}", e);
+                                        continue;
+                                    }
+                                }
                             }
                         }
                         Ok(ws::Message::Close(_)) => {
@@ -224,6 +321,23 @@ pub mod handlers {
                             // Handle other message types (Binary, Ping, Pong) if needed
                         }
                     }
+                }
+
+                log::debug!("Cleaning up WebSocket connection");
+
+                // Clean up on disconnect
+                if let Some(handle) = &task_handle {
+                    if handle.is_finished() {
+                        log::debug!("Notification task finished");
+                    } else {
+                        log::debug!("Aborting notification task");
+                        handle.abort();
+                    }
+                }
+
+                // Clean up session subscription
+                if let Some(session_id) = &session_id {
+                    state.pub_sub.cleanup_session(&session_id.clone()).await;
                 }
 
                 log::debug!("Connection ended");
