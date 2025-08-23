@@ -175,6 +175,7 @@ pub mod handlers {
             };
             use kiko::{id::SessionId, tracing};
             use kiko::{log, serde_json};
+            use tokio::sync::mpsc;
 
             use std::{net::SocketAddr, sync::Arc};
 
@@ -200,125 +201,167 @@ pub mod handlers {
                 log::debug!("Connection established");
                 let mut session_id: Option<SessionId> = None;
                 let mut task_handle = Option::<tokio::task::JoinHandle<()>>::None;
+                let mut outbound_rx: Option<mpsc::UnboundedReceiver<String>> = None;
 
                 // Echo messages back to client
-                while let Some(msg) = socket.recv().await {
-                    match msg {
-                        Ok(ws::Message::Text(text)) => {
-                            match serde_json::from_str::<kiko::data::SessionMessage>(&text) {
-                                Ok(session_msg) => {
-                                    log::debug!(
-                                        "Received message from {}: {:?}",
-                                        client_addr,
-                                        session_msg
-                                    );
+                loop {
+                    tokio::select! {
+                        // Handle incoming WebSocket messages
+                        msg = socket.recv() => {
+                            match msg {
+                                Some(Ok(ws::Message::Text(text))) => {
+                                    match serde_json::from_str::<kiko::data::SessionMessage>(&text) {
+                                        Ok(session_msg) => {
+                                            log::debug!(
+                                                "Received message from {}: {:?}",
+                                                client_addr,
+                                                session_msg
+                                            );
 
-                                    match &session_msg {
-                                        kiko::data::SessionMessage::CreateSession(create) => {
-                                            log::info!("Creating session: {:?}", create);
-                                            // Handle creating session logic here
-                                        }
-                                        kiko::data::SessionMessage::JoinSession(join) => {
-                                            log::info!("Joining session: {:?}", join);
-                                            session_id = Some(join.session_id.clone().into());
-
-                                            // Check if the session exists
-                                            // If not, send an error message and continue
-                                            if state
-                                                .sessions
-                                                .get(&join.session_id.clone().into())
-                                                .await
-                                                .is_err()
-                                            {
-                                                let error_msg = format!(
-                                                    "Session {} not found",
-                                                    join.session_id
-                                                );
-                                                log::error!("{}", error_msg);
-                                                if let Err(e) = socket
-                                                    .send(ws::Message::Text(error_msg.into()))
-                                                    .await
-                                                {
-                                                    log::error!(
-                                                        "Failed to send error message: {}",
-                                                        e
-                                                    );
+                                            match &session_msg {
+                                                kiko::data::SessionMessage::CreateSession(create) => {
+                                                    log::info!("Creating session: {:?}", create);
+                                                    // Handle creating session logic here
                                                 }
-                                                session_id = None;
-                                                continue;
-                                            }
+                                                kiko::data::SessionMessage::JoinSession(join) => {
+                                                    log::info!("Joining session: {:?}", join);
+                                                    session_id = Some(join.session_id.clone().into());
 
-                                            // Check if already subscribed
-                                            if task_handle.is_some() {
-                                                log::warn!(
-                                                    "Already subscribed to a session, ignoring join request"
-                                                );
-                                                continue;
-                                            }
-
-                                            // Handle joining session logic here
-                                            let _ = state
-                                                .pub_sub
-                                                .subscribe(session_id.clone().unwrap())
-                                                .await;
-
-                                            // Spawn a task to listen for messages and notify the WebSocket
-                                            task_handle = Some(tokio::spawn({
-                                                let state = state.clone();
-                                                let session_id = session_id.clone().unwrap();
-                                                async move {
-                                                    loop {
-                                                        if let Some(msg) = state
-                                                            .pub_sub
-                                                            .consume_event(&session_id)
+                                                    // Check if the session exists
+                                                    // If not, send an error message and continue
+                                                    if state
+                                                        .sessions
+                                                        .get(&join.session_id.clone().into())
+                                                        .await
+                                                        .is_err()
+                                                    {
+                                                        let error_msg = format!(
+                                                            "Session {} not found",
+                                                            join.session_id
+                                                        );
+                                                        log::error!("{}", error_msg);
+                                                        if let Err(e) = socket
+                                                            .send(ws::Message::Text(error_msg.into()))
                                                             .await
                                                         {
-                                                            log::info!(
-                                                                "Publishing message to session {}: {:?}",
-                                                                session_id,
-                                                                msg
+                                                            log::error!(
+                                                                "Failed to send error message: {}",
+                                                                e
                                                             );
                                                         }
+                                                        session_id = None;
+                                                        continue;
                                                     }
+
+                                                    // Check if already subscribed
+                                                    if task_handle.is_some() {
+                                                        log::warn!(
+                                                            "Already subscribed to a session, ignoring join request"
+                                                        );
+                                                        continue;
+                                                    }
+
+                                                    // Handle joining session logic here
+                                                    let _ = state
+                                                        .pub_sub
+                                                        .subscribe(session_id.clone().unwrap())
+                                                        .await;
+
+                                                    // Create a channel for sending messages to the WebSocket
+                                                    let (outbound_tx, rx) = mpsc::unbounded_channel::<String>();
+                                                    outbound_rx = Some(rx);
+
+                                                    // Spawn a task to listen for messages and notify the WebSocket
+                                                    task_handle = Some(tokio::spawn({
+                                                        let state = state.clone();
+                                                        let session_id = session_id.clone().unwrap();
+                                                        async move {
+                                                            let notifier = state
+                                                                .pub_sub
+                                                                .subscribe(session_id.clone())
+                                                                .await;
+                                                            loop {
+                                                                notifier.notified().await;
+                                                                if let Some(msg) = state
+                                                                    .pub_sub
+                                                                    .consume_event(&session_id)
+                                                                    .await
+                                                                {
+                                                                    if let Ok(json) =
+                                                                        serde_json::to_string(&*msg)
+                                                                    {
+                                                                        if outbound_tx.send(json).is_err() {
+                                                                            break; // Channel closed
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }));
                                                 }
-                                            }));
+                                                kiko::data::SessionMessage::AddParticipant(add) => {
+                                                    log::info!("Adding participant: {:?}", add);
+                                                    // Handle adding participant logic here
+                                                }
+                                                kiko::data::SessionMessage::RemoveParticipant(remove) => {
+                                                    log::info!("Removing participant: {:?}", remove);
+                                                    // Handle removing participant logic here
+                                                }
+                                                kiko::data::SessionMessage::SessionUpdate(update) => {
+                                                    log::info!("Session update: {:?}", update);
+                                                    // Handle session update logic here
+                                                }
+                                            }
                                         }
-                                        kiko::data::SessionMessage::AddParticipant(add) => {
-                                            log::info!("Adding participant: {:?}", add);
-                                            // Handle adding participant logic here
-                                        }
-                                        kiko::data::SessionMessage::RemoveParticipant(remove) => {
-                                            log::info!("Removing participant: {:?}", remove);
-                                            // Handle removing participant logic here
-                                        }
-                                        kiko::data::SessionMessage::SessionUpdate(update) => {
-                                            log::info!("Session update: {:?}", update);
-                                            // Handle session update logic here
+                                        Err(e) => {
+                                            log::error!("Failed to parse message: {}", e);
+                                            if let Err(e) = socket
+                                                .send(ws::Message::Text("Invalid message format".into()))
+                                                .await
+                                            {
+                                                log::error!("Failed to send error message: {}", e);
+                                                break;
+                                            }
                                         }
                                     }
                                 }
-                                Err(e) => {
-                                    log::error!("Failed to parse message: {}", e);
-                                    if let Err(e) = socket
-                                        .send(ws::Message::Text("Invalid message format".into()))
-                                        .await
-                                    {
-                                        log::error!("Failed to send error message: {}", e);
-                                        continue;
-                                    }
+                                Some(Ok(ws::Message::Close(_))) => {
+                                    log::debug!("Connection closed by client");
+                                    break;
+                                }
+                                Some(Err(e)) => {
+                                    log::error!("WebSocket error: {}", e);
+                                    break;
+                                }
+                                None => {
+                                    log::debug!("WebSocket connection closed");
+                                    break;
+                                }
+                                _ => {
+                                    // Handle other message types (Binary, Ping, Pong) if needed
                                 }
                             }
                         }
-                        Ok(ws::Message::Close(_)) => {
-                            log::debug!("Connection closed by client");
-                            break;
-                        }
-                        Err(e) => {
-                            log::error!("WebSocket error: {}", e);
-                            break;
-                        }
-                        _ => {
-                            // Handle other message types (Binary, Ping, Pong) if needed
+
+                        // Handle outbound messages from the subscription task
+                        outbound_msg = async {
+                            match &mut outbound_rx {
+                                Some(rx) => rx.recv().await,
+                                None => std::future::pending().await,
+                            }
+                        } => {
+                            match outbound_msg {
+                                Some(json) => {
+                                    if let Err(e) = socket.send(ws::Message::Text(json.into())).await {
+                                        log::error!("Failed to send message to WebSocket: {}", e);
+                                        break;
+                                    }
+                                }
+                                None => {
+                                    log::debug!("Outbound channel closed");
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
