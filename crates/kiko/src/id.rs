@@ -42,7 +42,7 @@ static SHORT_ID_GENERATOR: LazyShortCodeGenerator = LazyLock::new(|| {
 ///
 /// This struct provides a consistent way to generate and handle IDs throughout
 /// the application while maintaining type safety and preventing ID mixing.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Id<T> {
     value: String,
     _phantom: std::marker::PhantomData<T>,
@@ -155,6 +155,12 @@ impl<T> Id<T> {
     /// ```
     pub fn into_string(self) -> String {
         self.value
+    }
+}
+
+impl<T> fmt::Debug for Id<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Id({})", self.value)
     }
 }
 
