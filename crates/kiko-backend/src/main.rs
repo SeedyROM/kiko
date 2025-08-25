@@ -650,7 +650,7 @@ pub mod handlers {
 
             use axum::{Json, extract::State};
             use kiko::log;
-            use kiko::serde_json::{Value, json};
+            use kiko::data::{HealthResponse, HealthStatus, UptimeInfo, ServiceInfo};
 
             use crate::services::SessionService;
 
@@ -685,27 +685,24 @@ pub mod handlers {
                 (seconds, human)
             }
 
-            pub async fn get(State(state): State<Arc<crate::AppState>>) -> Json<Value> {
+            pub async fn get(State(state): State<Arc<crate::AppState>>) -> Json<HealthResponse> {
                 let session_count = state.sessions.list().await.unwrap_or_default().len();
                 let (seconds, human) = service_uptime(state.started_at);
 
-                let health_json = json!({
-                    "status": "healthy",
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                    "started_at": state.started_at.to_rfc3339(),
-                    "uptime": {
-                        "seconds": seconds,
-                        "human": human
+                let health_response = HealthResponse {
+                    status: HealthStatus::Healthy,
+                    timestamp: chrono::Utc::now().to_rfc3339(),
+                    started_at: state.started_at.to_rfc3339(),
+                    uptime: UptimeInfo { seconds, human },
+                    services: ServiceInfo {
+                        sessions: "up".to_string(),
+                        active_sessions: session_count,
                     },
-                    "services": {
-                        "sessions": "up",
-                        "active_sessions": session_count
-                    }
-                });
+                };
 
-                log::info!("Health check: {}", health_json);
+                log::info!("Health check: {:?}", health_response);
 
-                Json(health_json)
+                Json(health_response)
             }
         }
     }

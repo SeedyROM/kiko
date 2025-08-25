@@ -125,6 +125,44 @@ pub struct RemoveParticipant {
     pub participant_id: String,
 }
 
+/// Health status enumeration.
+///
+/// Represents the overall health state of the server.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum HealthStatus {
+    Healthy,
+    Unhealthy,
+    Dead,
+}
+
+/// Health check response structure.
+///
+/// Contains server health information including status, uptime, and service states.
+/// Used by the `/health` endpoint to provide structured health check data.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HealthResponse {
+    pub status: HealthStatus,
+    pub timestamp: String,
+    pub started_at: String,
+    pub uptime: UptimeInfo,
+    pub services: ServiceInfo,
+}
+
+/// Uptime information in both seconds and human-readable format.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UptimeInfo {
+    pub seconds: i64,
+    pub human: String,
+}
+
+/// Service status information.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServiceInfo {
+    pub sessions: String,
+    pub active_sessions: usize,
+}
+
 /// WebSocket message types for session operations.
 ///
 /// This enum defines all possible messages that can be sent between clients and the server
