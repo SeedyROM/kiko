@@ -1,3 +1,8 @@
+//! Kiko Backend Server
+//!
+//! A real-time session management backend built with Axum and WebSockets.
+//! Provides REST APIs for session management and WebSocket connections for live updates.
+
 pub mod messaging;
 pub mod services;
 
@@ -17,6 +22,7 @@ use kiko::log;
 
 use crate::{messaging::PubSub, services::SessionServiceInMemory};
 
+/// Shared application state containing services and configuration.
 pub struct AppState {
     started_at: DateTime<chrono::Utc>,
     sessions: SessionServiceInMemory,

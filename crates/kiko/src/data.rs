@@ -1,4 +1,8 @@
-//! Data structures used between the frontend and backend of the Kiko application.
+//! Data structures and message types for session management.
+//!
+//! This module contains the core data types used throughout the Kiko application
+//! for managing sessions, participants, and communication between frontend and backend.
+//! All types are serializable and designed to work seamlessly with JSON APIs and WebSocket messaging.
 
 use std::time::Duration;
 
@@ -6,6 +10,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::id::{ParticipantId, SessionId};
 
+/// Represents a participant in a session.
+///
+/// A participant has a unique ID and a display name. Participants can join and leave
+/// sessions dynamically, and their information is synchronized across all clients.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Participant {
     id: ParticipantId,
@@ -117,6 +125,10 @@ pub struct RemoveParticipant {
     pub participant_id: String,
 }
 
+/// WebSocket message types for session operations.
+///
+/// This enum defines all possible messages that can be sent between clients and the server
+/// for session management operations. Messages are JSON-serialized for WebSocket transport.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SessionMessage {
     CreateSession(CreateSession),
