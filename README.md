@@ -29,3 +29,13 @@ Kiko is a Hawaiian word meaning "dot," "point," or "spot" - referring to small m
 - The frontend is served at `http://localhost:8080` and the backend at `http://localhost:3030` respectively
 - The frontend and backend are reloaded automatically when you make changes to the code
     - The frontend is built using `trunk` and the backend is built using `cargo watch`, read the documentation on each tool for more details
+
+### 📖 Documentation
+
+To generate documentation for all workspace crates without external dependencies:
+
+```bash
+cargo doc --no-deps --document-private-items
+```
+
+Add `--open` to automatically open the docs in your browser after generation.
