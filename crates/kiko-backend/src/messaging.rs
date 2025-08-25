@@ -166,11 +166,17 @@ impl PubSub {
     /// # }
     /// ```
     pub async fn publish(&self, session_id: SessionId, message: SessionMessage) {
-        let mut events = self.events.write().await;
+        // Get the notifier first
         let notifier = self.notifiers.read().await.get(&session_id).cloned();
 
         if let Some(notifier) = notifier {
-            events.insert(session_id, ArcSwap::from_pointee(message));
+            // Store the message and immediately drop the write lock
+            {
+                let mut events = self.events.write().await;
+                events.insert(session_id, ArcSwap::from_pointee(message));
+            } // Write lock dropped here
+            
+            // Now notify waiters - they can immediately acquire read locks
             notifier.notify_waiters();
         }
     }

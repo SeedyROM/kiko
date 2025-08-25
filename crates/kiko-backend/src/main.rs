@@ -191,6 +191,7 @@ pub mod handlers {
 
             pub struct ConnectionState {
                 session_id: Option<SessionId>,
+                participant_id: Option<kiko::id::ParticipantId>,
                 task_handle: Option<tokio::task::JoinHandle<()>>,
                 outbound_rx: Option<mpsc::UnboundedReceiver<String>>,
             }
@@ -199,6 +200,7 @@ pub mod handlers {
                 pub fn new() -> Self {
                     Self {
                         session_id: None,
+                        participant_id: None,
                         task_handle: None,
                         outbound_rx: None,
                     }
@@ -216,6 +218,7 @@ pub mod handlers {
                     }
                     self.task_handle = None;
                     self.outbound_rx = None;
+                    self.participant_id = None;
                 }
             }
 
@@ -231,9 +234,7 @@ pub mod handlers {
             ) -> Result<WebSocketResponse, WebSocketError> {
                 log::info!("Creating session: {:?}", _create);
                 // TODO: Implement session creation logic
-                Ok(WebSocketResponse::Success(
-                    "Session creation not implemented".to_string(),
-                ))
+                Ok(WebSocketResponse::None)
             }
 
             async fn setup_subscription(
@@ -252,8 +253,8 @@ pub mod handlers {
 
                 conn_state.session_id = Some(session_id.clone());
 
-                // Subscribe to the session
-                let _ = state.pub_sub.subscribe(session_id.clone()).await;
+                // Subscribe to the session and get the notifier
+                let notifier = state.pub_sub.subscribe(session_id.clone()).await;
 
                 // Create a channel for sending messages to the WebSocket
                 let (outbound_tx, rx) = mpsc::unbounded_channel::<String>();
@@ -264,17 +265,33 @@ pub mod handlers {
                     let state = state.clone();
                     let session_id = session_id.clone();
                     async move {
-                        let notifier = state.pub_sub.subscribe(session_id.clone()).await;
+                        log::debug!("Starting PubSub listener task for session: {:?}", session_id);
+                        let mut notified = notifier.notified(); // Create first notification listener
                         loop {
-                            notifier.notified().await; // Wait for notification
-                            if let Some(msg) = state.pub_sub.consume_event(&session_id).await {
-                                if let Ok(json) = serde_json::to_string(&*msg) {
-                                    if outbound_tx.send(json).is_err() {
-                                        break; // Channel closed
+                            notified.await; // Wait for notification
+                            log::debug!("Received notification for session: {:?}", session_id);
+                            
+                            // Create the next notification listener BEFORE processing the current message
+                            notified = notifier.notified();
+                            
+                            if let Some(msg) = state.pub_sub.get_event(&session_id).await {
+                                match serde_json::to_string(&*msg) {
+                                    Ok(json) => {
+                                        log::debug!("Sending message to WebSocket: {}", json);
+                                        if outbound_tx.send(json).is_err() {
+                                            log::debug!("WebSocket channel closed, ending PubSub task for session: {:?}", session_id);
+                                            break; // Channel closed
+                                        }
+                                    }
+                                    Err(e) => {
+                                        log::error!("Failed to serialize message for session {:?}: {}", session_id, e);
                                     }
                                 }
+                            } else {
+                                log::debug!("No message found after notification for session: {:?}", session_id);
                             }
                         }
+                        log::debug!("PubSub listener task ended for session: {:?}", session_id);
                     }
                 });
 
@@ -285,7 +302,7 @@ pub mod handlers {
             async fn handle_join_session(
                 join: &kiko::data::JoinSession,
                 state: &Arc<crate::AppState>,
-                _conn_state: &mut ConnectionState,
+                conn_state: &mut ConnectionState,
             ) -> Result<WebSocketResponse, WebSocketError> {
                 log::info!("Joining session: {:?}", join);
 
@@ -299,11 +316,15 @@ pub mod handlers {
                     .map_err(|_| WebSocketError::SessionNotFound(join.session_id.clone()))?;
 
                 // Add participant to the session
+                let participant_id = kiko::id::ParticipantId::new();
                 let participant = kiko::data::Participant::new(
-                    kiko::id::ParticipantId::new(),
+                    participant_id.clone(),
                     join.participant_name.clone(),
                 );
                 session.add_participant(participant);
+
+                // Store the participant ID in the connection state for cleanup
+                conn_state.participant_id = Some(participant_id);
 
                 // Update the session in storage
                 state
@@ -318,9 +339,7 @@ pub mod handlers {
                 let update_message = kiko::data::SessionMessage::SessionUpdate(session);
                 state.pub_sub.publish(session_id, update_message).await;
 
-                Ok(WebSocketResponse::Success(
-                    "Successfully joined session".to_string(),
-                ))
+                Ok(WebSocketResponse::None)
             }
 
             async fn handle_subscribe_to_session(
@@ -344,20 +363,42 @@ pub mod handlers {
             ) -> Result<WebSocketResponse, WebSocketError> {
                 log::info!("Adding participant: {:?}", add);
                 // TODO: Implement participant addition logic
-                Ok(WebSocketResponse::Success(
-                    "Participant addition not implemented".to_string(),
-                ))
+                Ok(WebSocketResponse::None)
             }
 
             async fn handle_remove_participant(
                 remove: &kiko::data::RemoveParticipant,
-                _state: &Arc<crate::AppState>,
+                state: &Arc<crate::AppState>,
             ) -> Result<WebSocketResponse, WebSocketError> {
                 log::info!("Removing participant: {:?}", remove);
-                // TODO: Implement participant removal logic
-                Ok(WebSocketResponse::Success(
-                    "Participant removal not implemented".to_string(),
-                ))
+
+                let session_id: SessionId = remove.session_id.clone().into();
+                let participant_id: kiko::id::ParticipantId = remove.participant_id.clone().into();
+
+                // Get the current session
+                let mut session = state
+                    .sessions
+                    .get(&session_id)
+                    .await
+                    .map_err(|_| WebSocketError::SessionNotFound(remove.session_id.clone()))?;
+
+                // Remove participant from the session
+                session.remove_participant(&participant_id);
+
+                // Update the session in storage
+                state
+                    .sessions
+                    .update(&session_id, &session)
+                    .await
+                    .map_err(|_| {
+                        WebSocketError::InvalidMessage("Failed to update session".to_string())
+                    })?;
+
+                // Broadcast the updated session to all subscribers
+                let update_message = kiko::data::SessionMessage::SessionUpdate(session);
+                state.pub_sub.publish(session_id, update_message).await;
+
+                Ok(WebSocketResponse::None)
             }
 
             async fn handle_session_update(
@@ -366,9 +407,7 @@ pub mod handlers {
             ) -> Result<WebSocketResponse, WebSocketError> {
                 log::info!("Session update: {:?}", update);
                 // TODO: Implement session update logic
-                Ok(WebSocketResponse::Success(
-                    "Session update not implemented".to_string(),
-                ))
+                Ok(WebSocketResponse::None)
             }
 
             async fn send_error(socket: &mut WebSocket, error: &WebSocketError) -> bool {
@@ -554,11 +593,27 @@ pub mod handlers {
                 conn_state: &mut ConnectionState,
                 state: &Arc<crate::AppState>,
             ) {
+                // Remove participant from session if they were joined
+                if let (Some(session_id), Some(participant_id)) = (&conn_state.session_id, &conn_state.participant_id) {
+                    log::info!("Cleaning up participant {:?} from session {:?}", participant_id, session_id);
+                    
+                    // Remove participant from session
+                    if let Ok(mut session) = state.sessions.get(session_id).await {
+                        session.remove_participant(participant_id);
+                        
+                        if let Ok(_) = state.sessions.update(session_id, &session).await {
+                            // Broadcast the updated session to all remaining subscribers
+                            let update_message = kiko::data::SessionMessage::SessionUpdate(session);
+                            state.pub_sub.publish(session_id.clone(), update_message).await;
+                        }
+                    }
+                }
+
                 conn_state.cleanup_subscription();
 
-                if let Some(session_id) = &conn_state.session_id {
-                    state.pub_sub.cleanup_session(session_id).await;
-                }
+                // Note: We don't call pub_sub.cleanup_session here because other subscribers
+                // might still be connected to this session. The PubSub system will handle
+                // cleanup when there are no more subscribers.
             }
         }
 
