@@ -119,7 +119,7 @@ impl PubSub {
     /// let session_id = SessionId::new();
     ///
     /// let notifier = pubsub.subscribe(session_id).await;
-    /// 
+    ///
     /// // Wait for the next notification
     /// notifier.notified().await;
     /// # }
@@ -175,7 +175,7 @@ impl PubSub {
                 let mut events = self.events.write().await;
                 events.insert(session_id, ArcSwap::from_pointee(message));
             } // Write lock dropped here
-            
+
             // Now notify waiters - they can immediately acquire read locks
             notifier.notify_waiters();
         }
@@ -302,12 +302,12 @@ impl PubSub {
     ///
     /// # async fn example() {
     /// let pubsub = PubSub::new();
-    /// 
+    ///
     /// assert_eq!(pubsub.session_count().await, 0);
     ///
     /// let session_id = SessionId::new();
     /// let _notifier = pubsub.subscribe(session_id).await;
-    /// 
+    ///
     /// assert_eq!(pubsub.session_count().await, 1);
     /// # }
     /// ```

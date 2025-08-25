@@ -1,5 +1,5 @@
-use yew::prelude::*;
 use web_sys::{InputEvent, KeyboardEvent, MouseEvent};
+use yew::prelude::*;
 
 use kiko::{
     async_callback,
@@ -138,33 +138,37 @@ pub fn session_page(props: &SessionProps) -> Html {
         let session_id = session_id.clone();
         let ws_error = ws_error.clone();
 
-        use_effect_with((ws_state.clone(), session_exists, *is_subscribed), move |(state, exists, subscribed)| {
-            // Only attempt websocket connection and subscription if session exists and not already subscribed
-            if !*exists || *subscribed {
-                return;
-            }
-
-            if state == &ConnectionState::Disconnected {
-                info!("🔌 Auto-connecting to WebSocket for session updates...");
-                ws_connect.emit(());
-            } else if state == &ConnectionState::Connected {
-                info!("📡 Auto-subscribing to session for updates...");
-                ws_error.set(None);
-                
-                // Send subscribe message for observation
-                let subscribe_message = SessionMessage::SubscribeToSession(SubscribeToSession {
-                    session_id: session_id.clone(),
-                });
-
-                if let Ok(message_text) = serde_json::to_string(&subscribe_message) {
-                    ws_send.emit(message_text);
-                    info!("📡 Sent subscribe message for session: {}", session_id);
-                    is_subscribed.set(true);
-                } else {
-                    ws_error.set(Some("Failed to serialize subscribe message".to_string()));
+        use_effect_with(
+            (ws_state.clone(), session_exists, *is_subscribed),
+            move |(state, exists, subscribed)| {
+                // Only attempt websocket connection and subscription if session exists and not already subscribed
+                if !*exists || *subscribed {
+                    return;
                 }
-            }
-        });
+
+                if state == &ConnectionState::Disconnected {
+                    info!("🔌 Auto-connecting to WebSocket for session updates...");
+                    ws_connect.emit(());
+                } else if state == &ConnectionState::Connected {
+                    info!("📡 Auto-subscribing to session for updates...");
+                    ws_error.set(None);
+
+                    // Send subscribe message for observation
+                    let subscribe_message =
+                        SessionMessage::SubscribeToSession(SubscribeToSession {
+                            session_id: session_id.clone(),
+                        });
+
+                    if let Ok(message_text) = serde_json::to_string(&subscribe_message) {
+                        ws_send.emit(message_text);
+                        info!("📡 Sent subscribe message for session: {}", session_id);
+                        is_subscribed.set(true);
+                    } else {
+                        ws_error.set(Some("Failed to serialize subscribe message".to_string()));
+                    }
+                }
+            },
+        );
     }
 
     // Join session callback (for participation - separate from observation)
@@ -194,7 +198,7 @@ pub fn session_page(props: &SessionProps) -> Html {
             }
 
             ws_error.set(None);
-            
+
             // Send join message for participation (this adds the participant to the session)
             info!("👥 Joining session as participant...");
             let join_message = SessionMessage::JoinSession(JoinSession {
@@ -458,7 +462,7 @@ pub fn session_page(props: &SessionProps) -> Html {
                                     }
                                 }
                             }
-                            
+
                             <SessionView session={session.clone()} on_refresh={refresh_session.clone()} />
                         </div>
                     }

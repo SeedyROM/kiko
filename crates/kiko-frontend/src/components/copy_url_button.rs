@@ -8,7 +8,7 @@ pub fn copy_url_button() -> Html {
         let url = location.href().unwrap();
         let navigator = window.navigator();
         let clipboard = navigator.clipboard();
-        
+
         wasm_bindgen_futures::spawn_local(async move {
             let _ = wasm_bindgen_futures::JsFuture::from(clipboard.write_text(&url)).await;
         });

@@ -265,30 +265,43 @@ pub mod handlers {
                     let state = state.clone();
                     let session_id = session_id.clone();
                     async move {
-                        log::debug!("Starting PubSub listener task for session: {:?}", session_id);
+                        log::debug!(
+                            "Starting PubSub listener task for session: {:?}",
+                            session_id
+                        );
                         let mut notified = notifier.notified(); // Create first notification listener
                         loop {
                             notified.await; // Wait for notification
                             log::debug!("Received notification for session: {:?}", session_id);
-                            
+
                             // Create the next notification listener BEFORE processing the current message
                             notified = notifier.notified();
-                            
+
                             if let Some(msg) = state.pub_sub.get_event(&session_id).await {
                                 match serde_json::to_string(&*msg) {
                                     Ok(json) => {
                                         log::debug!("Sending message to WebSocket: {}", json);
                                         if outbound_tx.send(json).is_err() {
-                                            log::debug!("WebSocket channel closed, ending PubSub task for session: {:?}", session_id);
+                                            log::debug!(
+                                                "WebSocket channel closed, ending PubSub task for session: {:?}",
+                                                session_id
+                                            );
                                             break; // Channel closed
                                         }
                                     }
                                     Err(e) => {
-                                        log::error!("Failed to serialize message for session {:?}: {}", session_id, e);
+                                        log::error!(
+                                            "Failed to serialize message for session {:?}: {}",
+                                            session_id,
+                                            e
+                                        );
                                     }
                                 }
                             } else {
-                                log::debug!("No message found after notification for session: {:?}", session_id);
+                                log::debug!(
+                                    "No message found after notification for session: {:?}",
+                                    session_id
+                                );
                             }
                         }
                         log::debug!("PubSub listener task ended for session: {:?}", session_id);
@@ -594,17 +607,26 @@ pub mod handlers {
                 state: &Arc<crate::AppState>,
             ) {
                 // Remove participant from session if they were joined
-                if let (Some(session_id), Some(participant_id)) = (&conn_state.session_id, &conn_state.participant_id) {
-                    log::info!("Cleaning up participant {:?} from session {:?}", participant_id, session_id);
-                    
+                if let (Some(session_id), Some(participant_id)) =
+                    (&conn_state.session_id, &conn_state.participant_id)
+                {
+                    log::info!(
+                        "Cleaning up participant {:?} from session {:?}",
+                        participant_id,
+                        session_id
+                    );
+
                     // Remove participant from session
                     if let Ok(mut session) = state.sessions.get(session_id).await {
                         session.remove_participant(participant_id);
-                        
-                        if let Ok(_) = state.sessions.update(session_id, &session).await {
+
+                        if (state.sessions.update(session_id, &session).await).is_ok() {
                             // Broadcast the updated session to all remaining subscribers
                             let update_message = kiko::data::SessionMessage::SessionUpdate(session);
-                            state.pub_sub.publish(session_id.clone(), update_message).await;
+                            state
+                                .pub_sub
+                                .publish(session_id.clone(), update_message)
+                                .await;
                         }
                     }
                 }
