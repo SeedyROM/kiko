@@ -293,6 +293,36 @@ fi
 
 echo "✅ All dependencies found"
 
+# Function to kill processes on specific ports
+kill_port_processes() {
+    local port=$1
+    local port_name=$2
+    
+    # Find processes using the port
+    local pids=$(lsof -ti:$port 2>/dev/null || true)
+    
+    if [ -n "$pids" ]; then
+        echo -e "${LOGO_COLOR}🔄 Killing existing $port_name processes on port $port...${NC}"
+        for pid in $pids; do
+            if kill -0 "$pid" 2>/dev/null; then
+                echo -e "${LOGO_COLOR}  Stopping process $pid...${NC}"
+                kill -TERM "$pid" 2>/dev/null || true
+                sleep 0.5
+                # Force kill if still running
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill -KILL "$pid" 2>/dev/null || true
+                fi
+            fi
+        done
+        echo -e "${LOGO_COLOR}✅ Port $port is now free${NC}"
+    fi
+}
+
+# Kill any existing processes on our target ports
+echo "🧹 Cleaning up existing processes..."
+kill_port_processes 3030 "backend"
+kill_port_processes 8080 "frontend"
+
 # Print logo
 echo -e "${LOGO_COLOR}"
 echo "  ,--. ,--.,--.,--.          "

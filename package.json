@@ -1,0 +1,15 @@
+{
+  "name": "kiko-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Kiko pointing poker app",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ui": "playwright test --ui",
+    "postinstall": "playwright install"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
