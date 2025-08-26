@@ -1,0 +1,169 @@
+#!/bin/bash
+
+# Print usage information
+usage() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Run Kiko end-to-end tests.
+
+Options:
+  --headed                Run tests with browser visible
+  --debug                 Run tests in debug mode
+  --ui                    Run tests in interactive UI mode
+  --show-report           Show existing HTML report in browser
+  --install-only          Only install dependencies, don't run tests
+  -h, --help              Show this help message
+
+Examples:
+  $0                      Run tests headlessly
+  $0 --headed             Run tests with browser visible
+  $0 --debug              Run tests in debug mode
+  $0 --ui                 Run tests in interactive UI mode
+
+EOF
+}
+
+# Parse command line arguments
+TEST_MODE="test:e2e"
+INSTALL_ONLY=false
+SHOW_REPORT=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --headed)
+            TEST_MODE="test:e2e:headed"
+            shift
+            ;;
+        --debug)
+            TEST_MODE="test:e2e:debug"
+            shift
+            ;;
+        --ui)
+            TEST_MODE="test:e2e:ui"
+            shift
+            ;;
+        --show-report)
+            SHOW_REPORT=true
+            shift
+            ;;
+        --install-only)
+            INSTALL_ONLY=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown argument '$1'"
+            echo
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# ANSI color codes
+E2E_COLOR='\033[38;5;214m' # Orange
+NC='\033[0m' # Stop color
+
+# Store original directory
+ORIGINAL_DIR=$(pwd)
+
+# Cleanup function to return to original directory
+cleanup() {
+    cd "$ORIGINAL_DIR"
+}
+
+# Set up signal handlers
+trap cleanup EXIT
+
+# Check if we're in the right directory
+if [ ! -d "tests/e2e" ]; then
+    echo "❌ tests/e2e directory not found. Are you in the project root?"
+    exit 1
+fi
+
+# Change to e2e directory
+cd tests/e2e || {
+    echo "❌ Failed to change to tests/e2e directory"
+    exit 1
+}
+
+# Check if package.json exists
+if [ ! -f "package.json" ]; then
+    echo "❌ package.json not found in tests/e2e directory"
+    exit 1
+fi
+
+echo -e "${E2E_COLOR}🧪 Kiko E2E Test Runner${NC}"
+echo
+
+# Check if node_modules exists and package-lock.json is newer
+NEED_INSTALL=false
+
+if [ ! -d "node_modules" ]; then
+    echo -e "${E2E_COLOR}📦 node_modules not found, installing dependencies...${NC}"
+    NEED_INSTALL=true
+elif [ -f "package-lock.json" ] && [ "package-lock.json" -nt "node_modules" ]; then
+    echo -e "${E2E_COLOR}📦 Dependencies out of date, updating...${NC}"
+    NEED_INSTALL=true
+fi
+
+# Install dependencies if needed
+if [ "$NEED_INSTALL" = true ]; then
+    echo -e "${E2E_COLOR}⏳ Running npm install...${NC}"
+    npm install
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to install dependencies"
+        exit 1
+    fi
+    
+    echo -e "${E2E_COLOR}✅ Dependencies installed${NC}"
+fi
+
+# Exit if install-only mode
+if [ "$INSTALL_ONLY" = true ]; then
+    echo -e "${E2E_COLOR}✅ Dependencies ready${NC}"
+    exit 0
+fi
+
+# Handle show-report mode
+if [ "$SHOW_REPORT" = true ]; then
+    echo -e "${E2E_COLOR}📊 Opening test report...${NC}"
+    npm run test:report
+    exit $?
+fi
+
+# Check if Playwright browsers are installed
+echo -e "${E2E_COLOR}🔍 Checking Playwright browsers...${NC}"
+if ! npx playwright install --dry-run >/dev/null 2>&1; then
+    echo -e "${E2E_COLOR}📦 Installing Playwright browsers...${NC}"
+    npx playwright install
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to install Playwright browsers"
+        exit 1
+    fi
+fi
+
+# Run the tests
+echo -e "${E2E_COLOR}🚀 Running E2E tests ($TEST_MODE)...${NC}"
+echo
+
+npm run "$TEST_MODE"
+
+# Capture exit code
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+    echo
+    echo -e "${E2E_COLOR}✅ All E2E tests passed!${NC}"
+else
+    echo
+    echo -e "${E2E_COLOR}❌ Some E2E tests failed${NC}"
+fi
+
+exit $TEST_EXIT_CODE
