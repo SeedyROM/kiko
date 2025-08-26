@@ -21,4 +21,4 @@ node_modules
 
 # Screenshots and test artifacts
 test-screenshots/
-platwright-report/
+playwright-report/
