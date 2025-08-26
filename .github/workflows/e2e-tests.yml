@@ -34,8 +34,12 @@ jobs:
     
     - name: Install Node.js dependencies
       run: |
+        # Install tailwindcss globally and create local node_modules in frontend
         npm install -g tailwindcss
-        cd tests/e2e && npm install
+        cd crates/kiko-frontend
+        mkdir -p node_modules
+        npm install tailwindcss --no-save
+        cd ../../tests/e2e && npm install
     
     - name: Install Playwright Browsers
       run: cd tests/e2e && npx playwright install --with-deps
@@ -43,7 +47,7 @@ jobs:
     - name: Build Rust project
       run: |
         cargo build --release
-        cd crates/kiko-frontend && trunk build --release
+        cd crates/kiko-frontend && RUSTFLAGS="-C target-feature=-nontrapping-fptoint" trunk build --release
     
     - name: Run E2E tests
       run: cd tests/e2e && npm run test:e2e
