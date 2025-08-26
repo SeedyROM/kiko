@@ -35,11 +35,25 @@ test.describe("Session Page", () => {
   });
 
   test("should show loading state initially", async ({ page }) => {
-    await page.goto("/session/test-session");
+    // Intercept the API request to delay it significantly for all browsers
+    await page.route("**/api/v1/session/test-session", async (route) => {
+      // Use a longer delay to account for browser differences
+      await new Promise(resolve => setTimeout(resolve, 500));
+      route.continue();
+    });
 
+    // Navigate and immediately check for loading state
+    const navigationPromise = page.goto("/session/test-session");
+    
+    // Wait a bit for the page to start rendering
+    await page.waitForTimeout(50);
+    
     // Should show loading spinner and text
-    await expect(page.locator("text=Loading session...")).toBeVisible();
-    await expect(page.locator("svg.animate-spin")).toBeVisible();
+    await expect(page.locator("text=Loading session...")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator("svg.animate-spin")).toBeVisible({ timeout: 10000 });
+    
+    // Wait for navigation to complete
+    await navigationPromise;
   });
 
   test("should show error for nonexistent session", async ({ page }) => {

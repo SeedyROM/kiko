@@ -238,7 +238,7 @@ pub fn session_page(props: &SessionProps) -> Html {
     html! {
         <div class="p-8 max-w-4xl mx-auto">
             <div class="mb-6">
-                <div class="flex justify-between items-center">
+                <div class="flex flex-col sm:flex-row gap-x-4 justify-between items-center">
                     <h1 class="text-3xl font-bold text-gray-900">{ "Session Details" }</h1>
                     <div class="flex items-center space-x-2">
                         <div class={classes!("w-3", "h-3", "rounded-full", match ws.state {
