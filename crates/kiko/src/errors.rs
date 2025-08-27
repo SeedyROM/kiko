@@ -23,4 +23,6 @@ pub enum WebSocketError {
     SendFailed,
     #[error("Communication channel closed")]
     ChannelClosed,
+    #[error("Not subscribed to any session")]
+    NotSubscribed,
 }
