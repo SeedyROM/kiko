@@ -9,6 +9,10 @@ use kiko::serde_json;
 
 use crate::components::CopyUrlButton;
 
+fn is_point_selected(selected_points: Option<u32>, points: u32) -> bool {
+    selected_points == Some(points).filter(|&p| p != 0).or(if points == 0 { Some(0) } else { None })
+}
+
 #[derive(Properties, PartialEq)]
 pub struct SessionViewProps {
     pub session: Session,
@@ -254,10 +258,14 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         let participant_name = props.participant_name.clone();
                         let session_id = session.id.clone();
                         let participants = session.participants().clone();
+                        let selected_points = selected_points.clone();
                         let participant_map: HashMap<String, _> = participants.iter()
                                 .map(|p| (p.name().to_string(), p.id().to_string()))
                                 .collect();
                         Callback::from(move |points: u32| {
+                            // Update local state immediately
+                            selected_points.set(Some(points));
+                            
                             if let (Some(sender), Some(name)) = (&on_send_message, &participant_name) {
                                 if let Some(participant_id) = participant_map.get(name) {
                                     let point_value = if points == 0 { None } else { Some(points) };
@@ -278,7 +286,11 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
                     let on_clear_points = {
                         let on_send_message = props.on_send_message.clone();
+                        let selected_points = selected_points.clone();
                         Callback::from(move |_: MouseEvent| {
+                            // Clear local state immediately
+                            selected_points.set(None);
+                            
                             if let Some(sender) = &on_send_message {
                                 let clear_message = SessionMessage::ClearPoints;
                                 if let Ok(message_text) = serde_json::to_string(&clear_message) {
@@ -311,7 +323,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                 })
                                             };
 
-                                            let is_selected = *selected_points == Some(points).filter(|&p| p != 0).or(if points == 0 { Some(0) } else { None });
+                                            let is_selected = is_point_selected(*selected_points, points);
 
                                             html! {
                                                 <button
