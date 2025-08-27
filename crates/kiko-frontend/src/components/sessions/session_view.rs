@@ -1,9 +1,13 @@
-use crate::components::CopyUrlButton;
-use kiko::data::{Session, SessionMessage, PointSession};
+use std::collections::HashMap;
 use std::time::Duration;
-use yew::prelude::*;
 use web_sys::{InputEvent, MouseEvent};
+use yew::prelude::*;
+
+use kiko::data::{PointSession, Session, SessionMessage};
+use kiko::log;
 use kiko::serde_json;
+
+use crate::components::CopyUrlButton;
 
 #[derive(Properties, PartialEq)]
 pub struct SessionViewProps {
@@ -244,25 +248,29 @@ pub fn session_view(props: &SessionViewProps) -> Html {
             {
                 if props.is_joined && !session.participants().is_empty() {
                     let points_options = [1, 2, 3, 5, 8, 13, 21, 0]; // 0 for "I don't know"
-                    
+
                     let on_point = {
                         let on_send_message = props.on_send_message.clone();
                         let participant_name = props.participant_name.clone();
                         let session_id = session.id.clone();
                         let participants = session.participants().clone();
+                        let participant_map: HashMap<String, _> = participants.iter()
+                                .map(|p| (p.name().to_string(), p.id().to_string()))
+                                .collect();
                         Callback::from(move |points: u32| {
                             if let (Some(sender), Some(name)) = (&on_send_message, &participant_name) {
-                                // Find participant by name to get their ID
-                                if let Some(participant) = participants.iter().find(|p| p.name() == name) {
+                                if let Some(participant_id) = participant_map.get(name) {
                                     let point_value = if points == 0 { None } else { Some(points) };
                                     let point_message = SessionMessage::PointSession(PointSession {
                                         session_id: session_id.to_string(),
-                                        participant_id: participant.id().to_string(),
+                                        participant_id: participant_id.to_string(),
                                         points: point_value,
                                     });
                                     if let Ok(message_text) = serde_json::to_string(&point_message) {
                                         sender.emit(message_text);
                                     }
+                                } else {
+                                    log::warn!("Participant name '{}' not found in session '{}'", name, session_id);
                                 }
                             }
                         })
@@ -291,7 +299,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                     { "Clear All" }
                                 </button>
                             </div>
-                            
+
                             <div class="space-y-4">
                                 <div class="grid grid-cols-4 md:grid-cols-8 gap-2">
                                     {
@@ -302,9 +310,9 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                     on_point.emit(points);
                                                 })
                                             };
-                                            
+
                                             let is_selected = *selected_points == Some(points).filter(|&p| p != 0).or(if points == 0 { Some(0) } else { None });
-                                            
+
                                             html! {
                                                 <button
                                                     key={points.to_string()}
@@ -326,38 +334,39 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                         }).collect::<Html>()
                                     }
                                 </div>
-                                
+
                                 // Show current votes if any exist
                                 {
                                     if !session.current_points().is_empty() {
+                                        let participant_map: HashMap<String, _> = session.participants().iter()
+                                            .map(|p| (p.id().to_string(), p.name()))
+                                            .collect();
                                         html! {
                                             <div class="bg-gray-50 p-4 rounded-lg">
                                                 <h4 class="text-sm font-medium text-gray-900 mb-3">{ "Current Votes:" }</h4>
                                                 <div class="space-y-2">
                                                     {
                                                         session.current_points().iter().filter_map(|(participant_id, points)| {
-                                                            session.participants().iter()
-                                                                .find(|p| p.id().to_string() == participant_id.to_string())
-                                                                .map(|participant| {
-                                                                    html! {
-                                                                        <div key={participant_id.to_string()} class="flex items-center justify-between p-2 bg-white rounded border">
-                                                                            <span class="text-sm font-medium">{ participant.name() }</span>
-                                                                            <span class={format!(
-                                                                                "px-2 py-1 rounded text-xs font-medium {}",
-                                                                                if points.is_none() {
-                                                                                    "bg-gray-200 text-gray-700"
-                                                                                } else {
-                                                                                    "bg-blue-100 text-blue-800"
-                                                                                }
-                                                                            )}>{
-                                                                                match points {
-                                                                                    Some(p) => p.to_string(),
-                                                                                    None => "?".to_string(),
-                                                                                }
-                                                                            }</span>
-                                                                        </div>
-                                                                    }
-                                                                })
+                                                            participant_map.get(&participant_id.to_string()).map(|name| {
+                                                                html! {
+                                                                    <div key={participant_id.to_string()} class="flex items-center justify-between p-2 bg-white rounded border">
+                                                                        <span class="text-sm font-medium">{ name }</span>
+                                                                        <span class={format!(
+                                                                            "px-2 py-1 rounded text-xs font-medium {}",
+                                                                            if points.is_none() {
+                                                                                "bg-gray-200 text-gray-700"
+                                                                            } else {
+                                                                                "bg-blue-100 text-blue-800"
+                                                                            }
+                                                                        )}>{
+                                                                            match points {
+                                                                                Some(p) => p.to_string(),
+                                                                                None => "?".to_string(),
+                                                                            }
+                                                                        }</span>
+                                                                    </div>
+                                                                }
+                                                            })
                                                         }).collect::<Html>()
                                                     }
                                                 </div>
