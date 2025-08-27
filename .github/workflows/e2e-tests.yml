@@ -20,10 +20,39 @@ jobs:
         targets: wasm32-unknown-unknown
         components: rustfmt, clippy
     
+    - name: Cache Cargo registry and git trees
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+    
+    - name: Cache Cargo binaries
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/
+        key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-bin-trunk-
+          ${{ runner.os }}-cargo-bin-
+    
+    - name: Cache target directory
+      uses: actions/cache@v4
+      with:
+        path: target/
+        key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/*.rs') }}
+        restore-keys: |
+          ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-
+          ${{ runner.os }}-target-
+    
     - name: Install Rust dependencies
       run: |
-        cargo install trunk
-        cargo install cargo-watch
+        cargo install trunk --locked || echo "trunk already installed"
+        cargo install cargo-watch --locked || echo "cargo-watch already installed"
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
