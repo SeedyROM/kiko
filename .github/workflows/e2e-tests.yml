@@ -61,6 +61,22 @@ jobs:
         cache: 'npm'
         cache-dependency-path: 'tests/e2e/package-lock.json'
     
+    - name: Cache global npm packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-global-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-global-
+    
+    - name: Cache frontend node_modules
+      uses: actions/cache@v4
+      with:
+        path: crates/kiko-frontend/node_modules
+        key: ${{ runner.os }}-frontend-node-modules-tailwindcss
+        restore-keys: |
+          ${{ runner.os }}-frontend-node-modules-
+    
     - name: Install Node.js dependencies
       run: |
         # Install tailwindcss globally and create local node_modules in frontend
