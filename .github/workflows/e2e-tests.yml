@@ -86,6 +86,14 @@ jobs:
         npm install tailwindcss --no-save
         cd ../../tests/e2e && npm install
     
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
+    
     - name: Install Playwright Browsers
       run: cd tests/e2e && npx playwright install --with-deps
     
