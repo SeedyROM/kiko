@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
-use web_sys::{InputEvent, MouseEvent};
+use web_sys::{InputEvent, KeyboardEvent, MouseEvent};
 use yew::prelude::*;
 
 use kiko::data::{PointSession, Session, SessionMessage};
@@ -25,8 +25,27 @@ pub struct SessionViewProps {
 #[function_component(SessionView)]
 pub fn session_view(props: &SessionViewProps) -> Html {
     let session = &props.session;
-    let topic_input = use_state(|| session.current_topic().clone());
+    let topic_input = use_state(|| String::new());
     let selected_points = use_state(|| None::<u32>);
+
+    // Sync selected_points with session state when points are cleared
+    use_effect_with((session.current_points().clone(), props.participant_name.clone()), {
+        let selected_points = selected_points.clone();
+        let participants = session.participants().clone();
+        move |(session_points, participant_name): &(HashMap<kiko::id::ParticipantId, Option<u32>>, Option<String>)| {
+            if let Some(name) = participant_name {
+                // Find participant ID by name
+                if let Some(participant) = participants.iter().find(|p| p.name() == name) {
+                    let participant_id = participant.id();
+                    // Check if this participant has points in the session
+                    if !session_points.contains_key(participant_id) {
+                        // No points for this participant, clear local state
+                        selected_points.set(None);
+                    }
+                }
+            }
+        }
+    });
 
     // WASM-compatible time functions using JavaScript Date API
     let get_current_timestamp = || -> u64 { (js_sys::Date::now() / 1000.0) as u64 };
@@ -198,6 +217,23 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                 let topic_message = SessionMessage::SetTopic((*topic_input).clone());
                                 if let Ok(message_text) = serde_json::to_string(&topic_message) {
                                     sender.emit(message_text);
+                                    topic_input.set(String::new()); // Clear input after sending
+                                }
+                            }
+                        })
+                    };
+
+                    let on_topic_keypress = {
+                        let on_send_message = props.on_send_message.clone();
+                        let topic_input = topic_input.clone();
+                        Callback::from(move |e: KeyboardEvent| {
+                            if e.key() == "Enter" {
+                                if let Some(sender) = &on_send_message {
+                                    let topic_message = SessionMessage::SetTopic((*topic_input).clone());
+                                    if let Ok(message_text) = serde_json::to_string(&topic_message) {
+                                        sender.emit(message_text);
+                                        topic_input.set(String::new()); // Clear input after sending
+                                    }
                                 }
                             }
                         })
@@ -221,6 +257,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                 }
                                             })
                                         }}
+                                        onkeypress={on_topic_keypress}
                                     />
                                     <button
                                         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
