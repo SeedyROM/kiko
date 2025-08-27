@@ -9,7 +9,7 @@ use axum::{
 };
 use tokio::sync::mpsc;
 
-use kiko::errors::WebSocketError;
+use kiko::{data::SessionMessage, errors::WebSocketError};
 use kiko::{id::SessionId, tracing};
 use kiko::{log, serde_json};
 
@@ -178,7 +178,7 @@ async fn handle_join_session(
         .map_err(|_| WebSocketError::InvalidMessage("Failed to update session".to_string()))?;
 
     // Broadcast the updated session to all subscribers
-    let update_message = kiko::data::SessionMessage::SessionUpdate(session);
+    let update_message = SessionMessage::SessionUpdate(session);
     state.pub_sub.publish(session_id, update_message).await;
 
     Ok(WebSocketResponse::None)
@@ -235,7 +235,7 @@ async fn handle_remove_participant(
         .map_err(|_| WebSocketError::InvalidMessage("Failed to update session".to_string()))?;
 
     // Broadcast the updated session to all subscribers
-    let update_message = kiko::data::SessionMessage::SessionUpdate(session);
+    let update_message = SessionMessage::SessionUpdate(session);
     state.pub_sub.publish(session_id, update_message).await;
 
     Ok(WebSocketResponse::None)
@@ -247,6 +247,111 @@ async fn handle_session_update(
 ) -> Result<WebSocketResponse, WebSocketError> {
     log::info!("Session update: {:?}", update);
     // TODO: Implement session update logic
+    Ok(WebSocketResponse::None)
+}
+
+async fn handle_point_session(
+    point: &kiko::data::PointSession,
+    state: &Arc<crate::AppState>,
+    _conn_state: &mut ConnectionState,
+) -> Result<WebSocketResponse, WebSocketError> {
+    log::info!("Pointing session: {:?}", point);
+
+    let session_id: SessionId = point.session_id.clone().into();
+    let participant_id: kiko::id::ParticipantId = point.participant_id.clone().into();
+
+    // Get the current session
+    let mut session = state
+        .sessions
+        .get(&session_id)
+        .await
+        .map_err(|_| WebSocketError::SessionNotFound(point.session_id.clone()))?;
+
+    // Add points for the participant
+    session.point(&participant_id, point.points);
+
+    // Update the session in storage
+    state
+        .sessions
+        .update(&session_id, &session)
+        .await
+        .map_err(|_| WebSocketError::InvalidMessage("Failed to update session".to_string()))?;
+
+    // Broadcast the updated session to all subscribers
+    let update_message = SessionMessage::SessionUpdate(session);
+    state.pub_sub.publish(session_id, update_message).await;
+
+    Ok(WebSocketResponse::None)
+}
+
+async fn handle_set_topic(
+    topic: &String,
+    state: &Arc<crate::AppState>,
+    conn_state: &mut ConnectionState,
+) -> Result<WebSocketResponse, WebSocketError> {
+    log::info!("Setting topic: {:?}", topic);
+
+    let session_id = match &conn_state.session_id {
+        Some(id) => id.clone(),
+        None => return Err(WebSocketError::NotSubscribed),
+    };
+
+    // Get the current session
+    let mut session = state
+        .sessions
+        .get(&session_id)
+        .await
+        .map_err(|_| WebSocketError::SessionNotFound(session_id.to_string()))?;
+
+    // Set the new topic
+    session.set_topic(topic.clone());
+
+    // Update the session in storage
+    state
+        .sessions
+        .update(&session_id, &session)
+        .await
+        .map_err(|_| WebSocketError::InvalidMessage("Failed to update session".to_string()))?;
+
+    // Broadcast the updated session to all subscribers
+    let update_message = SessionMessage::SessionUpdate(session);
+    state.pub_sub.publish(session_id, update_message).await;
+
+    Ok(WebSocketResponse::None)
+}
+
+async fn handle_clear_points(
+    state: &Arc<crate::AppState>,
+    conn_state: &mut ConnectionState,
+) -> Result<WebSocketResponse, WebSocketError> {
+    log::info!("Clearing points");
+
+    let session_id = match &conn_state.session_id {
+        Some(id) => id.clone(),
+        None => return Err(WebSocketError::NotSubscribed),
+    };
+
+    // Get the current session
+    let mut session = state
+        .sessions
+        .get(&session_id)
+        .await
+        .map_err(|_| WebSocketError::SessionNotFound(session_id.to_string()))?;
+
+    // Clear all points
+    session.clear_points();
+
+    // Update the session in storage
+    state
+        .sessions
+        .update(&session_id, &session)
+        .await
+        .map_err(|_| WebSocketError::InvalidMessage("Failed to update session".to_string()))?;
+
+    // Broadcast the updated session to all subscribers
+    let update_message = SessionMessage::SessionUpdate(session);
+    state.pub_sub.publish(session_id, update_message).await;
+
     Ok(WebSocketResponse::None)
 }
 
@@ -365,7 +470,7 @@ async fn handle_text_message(
     state: &Arc<crate::AppState>,
     client_addr: SocketAddr,
 ) -> bool {
-    let session_msg = match serde_json::from_str::<kiko::data::SessionMessage>(&text) {
+    let session_msg = match serde_json::from_str::<SessionMessage>(&text) {
         Ok(msg) => msg,
         Err(e) => {
             let error = WebSocketError::InvalidMessage(e.to_string());
@@ -376,22 +481,18 @@ async fn handle_text_message(
     log::debug!("Received message from {}: {:?}", client_addr, session_msg);
 
     let result = match &session_msg {
-        kiko::data::SessionMessage::CreateSession(create) => {
-            handle_create_session(create, state).await
-        }
-        kiko::data::SessionMessage::JoinSession(join) => {
-            handle_join_session(join, state, conn_state).await
-        }
-        kiko::data::SessionMessage::SubscribeToSession(subscribe) => {
+        SessionMessage::CreateSession(create) => handle_create_session(create, state).await,
+        SessionMessage::JoinSession(join) => handle_join_session(join, state, conn_state).await,
+        SessionMessage::SubscribeToSession(subscribe) => {
             handle_subscribe_to_session(subscribe, state, conn_state).await
         }
-        kiko::data::SessionMessage::AddParticipant(add) => handle_add_participant(add, state).await,
-        kiko::data::SessionMessage::RemoveParticipant(remove) => {
-            handle_remove_participant(remove, state).await
-        }
-        kiko::data::SessionMessage::SessionUpdate(update) => {
-            handle_session_update(update, state).await
-        }
+        SessionMessage::AddParticipant(add) => handle_add_participant(add, state).await,
+        SessionMessage::RemoveParticipant(remove) => handle_remove_participant(remove, state).await,
+        SessionMessage::SetTopic(topic) => handle_set_topic(topic, state, conn_state).await,
+        SessionMessage::PointSession(point) => handle_point_session(point, state, conn_state).await,
+        SessionMessage::ClearPoints => handle_clear_points(state, conn_state).await,
+
+        SessionMessage::SessionUpdate(update) => handle_session_update(update, state).await,
     };
 
     match result {
@@ -434,7 +535,7 @@ async fn cleanup_connection(conn_state: &mut ConnectionState, state: &Arc<crate:
 
             if (state.sessions.update(session_id, &session).await).is_ok() {
                 // Broadcast the updated session to all remaining subscribers
-                let update_message = kiko::data::SessionMessage::SessionUpdate(session);
+                let update_message = SessionMessage::SessionUpdate(session);
                 state
                     .pub_sub
                     .publish(session_id.clone(), update_message)

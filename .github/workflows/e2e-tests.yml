@@ -20,10 +20,39 @@ jobs:
         targets: wasm32-unknown-unknown
         components: rustfmt, clippy
     
+    - name: Cache Cargo registry and git trees
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+    
+    - name: Cache Cargo binaries
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/
+        key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-bin-trunk-
+          ${{ runner.os }}-cargo-bin-
+    
+    - name: Cache target directory
+      uses: actions/cache@v4
+      with:
+        path: target/
+        key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/*.rs') }}
+        restore-keys: |
+          ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-
+          ${{ runner.os }}-target-
+    
     - name: Install Rust dependencies
       run: |
-        cargo install trunk
-        cargo install cargo-watch
+        cargo install trunk --locked || echo "trunk already installed"
+        cargo install cargo-watch --locked || echo "cargo-watch already installed"
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -31,6 +60,22 @@ jobs:
         node-version: '20'
         cache: 'npm'
         cache-dependency-path: 'tests/e2e/package-lock.json'
+    
+    - name: Cache global npm packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-global-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-global-
+    
+    - name: Cache frontend node_modules
+      uses: actions/cache@v4
+      with:
+        path: crates/kiko-frontend/node_modules
+        key: ${{ runner.os }}-frontend-node-modules-tailwindcss
+        restore-keys: |
+          ${{ runner.os }}-frontend-node-modules-
     
     - name: Install Node.js dependencies
       run: |
@@ -40,6 +85,14 @@ jobs:
         mkdir -p node_modules
         npm install tailwindcss --no-save
         cd ../../tests/e2e && npm install
+    
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
     
     - name: Install Playwright Browsers
       run: cd tests/e2e && npx playwright install --with-deps

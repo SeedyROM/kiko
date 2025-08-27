@@ -4,11 +4,12 @@
 //! for managing sessions, participants, and communication between frontend and backend.
 //! All types are serializable and designed to work seamlessly with JSON APIs and WebSocket messaging.
 
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
 use crate::id::{ParticipantId, SessionId};
+use crate::log;
 
 /// Represents a participant in a session.
 ///
@@ -41,6 +42,8 @@ pub struct Session {
     started: u64,
     duration: Duration,
     members: Vec<Participant>,
+    current_topic: String,
+    current_points: HashMap<ParticipantId, Option<u32>>,
 }
 
 impl Session {
@@ -54,6 +57,8 @@ impl Session {
             started,
             duration,
             members: Vec::new(),
+            current_topic: String::new(),
+            current_points: HashMap::new(),
         }
     }
 
@@ -79,8 +84,38 @@ impl Session {
         }
     }
 
+    pub fn set_topic(&mut self, topic: String) {
+        self.current_topic = topic;
+    }
+
+    pub fn clear_points(&mut self) {
+        self.current_points.clear();
+    }
+
+    pub fn point(&mut self, participant_id: &ParticipantId, points: Option<u32>) {
+        // Validate participant exists
+        if !self.members.iter().any(|p| &p.id == participant_id) {
+            log::warn!(
+                "Participant ID {:?} not found in session {:?}",
+                participant_id,
+                self.id
+            );
+            return;
+        }
+        // Update points
+        self.current_points.insert(participant_id.clone(), points);
+    }
+
     pub fn participants(&self) -> &Vec<Participant> {
         &self.members
+    }
+
+    pub fn current_topic(&self) -> &String {
+        &self.current_topic
+    }
+
+    pub fn current_points(&self) -> &HashMap<ParticipantId, Option<u32>> {
+        &self.current_points
     }
 
     pub fn name(&self) -> &str {
@@ -163,6 +198,14 @@ pub struct ServiceInfo {
     pub active_sessions: usize,
 }
 
+/// Point a given task in the session.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PointSession {
+    pub session_id: String,
+    pub participant_id: String,
+    pub points: Option<u32>,
+}
+
 /// WebSocket message types for session operations.
 ///
 /// This enum defines all possible messages that can be sent between clients and the server
@@ -174,5 +217,8 @@ pub enum SessionMessage {
     SubscribeToSession(SubscribeToSession),
     AddParticipant(AddParticipant),
     RemoveParticipant(RemoveParticipant),
+    PointSession(PointSession),
+    SetTopic(String),
+    ClearPoints,
     SessionUpdate(Session),
 }
