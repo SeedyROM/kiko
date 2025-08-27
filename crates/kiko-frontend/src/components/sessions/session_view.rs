@@ -1,17 +1,24 @@
 use crate::components::CopyUrlButton;
-use kiko::data::Session;
+use kiko::data::{Session, SessionMessage, PointSession};
 use std::time::Duration;
 use yew::prelude::*;
+use web_sys::{InputEvent, MouseEvent};
+use kiko::serde_json;
 
 #[derive(Properties, PartialEq)]
 pub struct SessionViewProps {
     pub session: Session,
     pub on_refresh: Option<Callback<MouseEvent>>,
+    pub on_send_message: Option<Callback<String>>,
+    pub participant_name: Option<String>,
+    pub is_joined: bool,
 }
 
 #[function_component(SessionView)]
 pub fn session_view(props: &SessionViewProps) -> Html {
     let session = &props.session;
+    let topic_input = use_state(|| session.current_topic().clone());
+    let selected_points = use_state(|| None::<u32>);
 
     // WASM-compatible time functions using JavaScript Date API
     let get_current_timestamp = || -> u64 { (js_sys::Date::now() / 1000.0) as u64 };
@@ -171,6 +178,202 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                     }
                 }
             </div>
+
+            // Topic Setting Card (only show if joined)
+            {
+                if props.is_joined {
+                    let on_topic_change = {
+                        let on_send_message = props.on_send_message.clone();
+                        let topic_input = topic_input.clone();
+                        Callback::from(move |_: MouseEvent| {
+                            if let Some(sender) = &on_send_message {
+                                let topic_message = SessionMessage::SetTopic((*topic_input).clone());
+                                if let Ok(message_text) = serde_json::to_string(&topic_message) {
+                                    sender.emit(message_text);
+                                }
+                            }
+                        })
+                    };
+
+                    html! {
+                        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">{ "Current Topic" }</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center space-x-3">
+                                    <input
+                                        type="text"
+                                        class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Enter discussion topic..."
+                                        value={(*topic_input).clone()}
+                                        oninput={{
+                                            let topic_input = topic_input.clone();
+                                            Callback::from(move |e: InputEvent| {
+                                                if let Some(input) = e.target_dyn_into::<web_sys::HtmlInputElement>() {
+                                                    topic_input.set(input.value());
+                                                }
+                                            })
+                                        }}
+                                    />
+                                    <button
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                                        onclick={on_topic_change}
+                                    >
+                                        { "Set Topic" }
+                                    </button>
+                                </div>
+                                {
+                                    if !session.current_topic().is_empty() {
+                                        html! {
+                                            <div class="bg-blue-50 p-3 rounded-md">
+                                                <p class="text-sm font-medium text-blue-900">{ "Current: " }{ session.current_topic() }</p>
+                                            </div>
+                                        }
+                                    } else {
+                                        html! {}
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
+
+            // Pointing/Voting Card (only show if joined and has participants)
+            {
+                if props.is_joined && !session.participants().is_empty() {
+                    let points_options = [1, 2, 3, 5, 8, 13, 21, 0]; // 0 for "I don't know"
+                    
+                    let on_point = {
+                        let on_send_message = props.on_send_message.clone();
+                        let participant_name = props.participant_name.clone();
+                        let session_id = session.id.clone();
+                        let participants = session.participants().clone();
+                        Callback::from(move |points: u32| {
+                            if let (Some(sender), Some(name)) = (&on_send_message, &participant_name) {
+                                // Find participant by name to get their ID
+                                if let Some(participant) = participants.iter().find(|p| p.name() == name) {
+                                    let point_value = if points == 0 { None } else { Some(points) };
+                                    let point_message = SessionMessage::PointSession(PointSession {
+                                        session_id: session_id.to_string(),
+                                        participant_id: participant.id().to_string(),
+                                        points: point_value,
+                                    });
+                                    if let Ok(message_text) = serde_json::to_string(&point_message) {
+                                        sender.emit(message_text);
+                                    }
+                                }
+                            }
+                        })
+                    };
+
+                    let on_clear_points = {
+                        let on_send_message = props.on_send_message.clone();
+                        Callback::from(move |_: MouseEvent| {
+                            if let Some(sender) = &on_send_message {
+                                let clear_message = SessionMessage::ClearPoints;
+                                if let Ok(message_text) = serde_json::to_string(&clear_message) {
+                                    sender.emit(message_text);
+                                }
+                            }
+                        })
+                    };
+
+                    html! {
+                        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">{ "Story Points" }</h3>
+                                <button
+                                    class="px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                                    onclick={on_clear_points}
+                                >
+                                    { "Clear All" }
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-4 md:grid-cols-8 gap-2">
+                                    {
+                                        points_options.iter().map(|&points| {
+                                            let point_callback = {
+                                                let on_point = on_point.clone();
+                                                Callback::from(move |_: MouseEvent| {
+                                                    on_point.emit(points);
+                                                })
+                                            };
+                                            
+                                            let is_selected = *selected_points == Some(points).filter(|&p| p != 0).or(if points == 0 { Some(0) } else { None });
+                                            
+                                            html! {
+                                                <button
+                                                    key={points.to_string()}
+                                                    class={format!(
+                                                        "p-3 rounded-lg border-2 font-medium transition-colors {}",
+                                                        if is_selected {
+                                                            "bg-blue-600 text-white border-blue-600"
+                                                        } else if points == 0 {
+                                                            "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+                                                        } else {
+                                                            "bg-white text-gray-900 border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                                                        }
+                                                    )}
+                                                    onclick={point_callback}
+                                                >
+                                                    { if points == 0 { "?".to_string() } else { points.to_string() } }
+                                                </button>
+                                            }
+                                        }).collect::<Html>()
+                                    }
+                                </div>
+                                
+                                // Show current votes if any exist
+                                {
+                                    if !session.current_points().is_empty() {
+                                        html! {
+                                            <div class="bg-gray-50 p-4 rounded-lg">
+                                                <h4 class="text-sm font-medium text-gray-900 mb-3">{ "Current Votes:" }</h4>
+                                                <div class="space-y-2">
+                                                    {
+                                                        session.current_points().iter().filter_map(|(participant_id, points)| {
+                                                            session.participants().iter()
+                                                                .find(|p| p.id().to_string() == participant_id.to_string())
+                                                                .map(|participant| {
+                                                                    html! {
+                                                                        <div key={participant_id.to_string()} class="flex items-center justify-between p-2 bg-white rounded border">
+                                                                            <span class="text-sm font-medium">{ participant.name() }</span>
+                                                                            <span class={format!(
+                                                                                "px-2 py-1 rounded text-xs font-medium {}",
+                                                                                if points.is_none() {
+                                                                                    "bg-gray-200 text-gray-700"
+                                                                                } else {
+                                                                                    "bg-blue-100 text-blue-800"
+                                                                                }
+                                                                            )}>{
+                                                                                match points {
+                                                                                    Some(p) => p.to_string(),
+                                                                                    None => "?".to_string(),
+                                                                                }
+                                                                            }</span>
+                                                                        </div>
+                                                                    }
+                                                                })
+                                                        }).collect::<Html>()
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    } else {
+                                        html! {}
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
 
         </div>
     }

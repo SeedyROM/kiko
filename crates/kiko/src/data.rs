@@ -110,6 +110,14 @@ impl Session {
         &self.members
     }
 
+    pub fn current_topic(&self) -> &String {
+        &self.current_topic
+    }
+
+    pub fn current_points(&self) -> &HashMap<ParticipantId, Option<u32>> {
+        &self.current_points
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
