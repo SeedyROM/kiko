@@ -32,7 +32,7 @@ enum ConfettiShape {
 }
 
 impl ConfettiParticle {
-    fn new(width: f64) -> Self {
+    fn new(width: f64, scale_factor: f64) -> Self {
         let colors = [
             "#FF0080", "#00FF80", "#8000FF", "#FF8000", "#0080FF", "#80FF00", "#FF0040", "#40FF00",
             "#0040FF", "#FF4000", "#4000FF", "#00FF40", "#FF1493", "#00CED1", "#FFD700", "#FF69B4",
@@ -45,29 +45,29 @@ impl ConfettiParticle {
             ConfettiShape::Square,
             ConfettiShape::Circle,
             ConfettiShape::Rectangle {
-                width: Math::random() * 15.0 + 5.0,
-                height: Math::random() * 8.0 + 3.0,
+                width: (Math::random() * 15.0 + 5.0) * scale_factor,
+                height: (Math::random() * 8.0 + 3.0) * scale_factor,
             },
             ConfettiShape::Line {
-                length: Math::random() * 20.0 + 10.0,
+                length: (Math::random() * 20.0 + 10.0) * scale_factor,
             },
         ];
         let shape_index = (Math::random() * shapes.len() as f64) as usize;
 
         Self {
             x: Math::random() * width,
-            y: -50.0,
-            vx: (Math::random() - 0.5) * 16.0,
-            vy: Math::random() * -20.0 - 8.0,
-            gravity: Math::random() * 0.4 + 0.2,
+            y: -50.0 * scale_factor,
+            vx: (Math::random() - 0.5) * 16.0 * scale_factor,
+            vy: (Math::random() * -20.0 - 8.0) * scale_factor,
+            gravity: (Math::random() * 0.4 + 0.2) * scale_factor,
             color: colors[color_index].to_string(),
-            size: Math::random() * 12.0 + 6.0,
+            size: (Math::random() * 12.0 + 6.0) * scale_factor,
             rotation: Math::random() * 360.0,
             rotation_speed: (Math::random() - 0.5) * 15.0,
             shape: shapes[shape_index].clone(),
             flutter_offset: Math::random() * 360.0,
             flutter_speed: Math::random() * 3.0 + 1.0,
-            flutter_amplitude: Math::random() * 30.0 + 10.0,
+            flutter_amplitude: (Math::random() * 30.0 + 10.0) * scale_factor,
             opacity: 1.0,
             time: 0.0,
         }
@@ -164,10 +164,19 @@ pub fn confetti(props: &ConfettiProps) -> Html {
         Callback::from(move |_| {
             if let Some(canvas) = canvas_ref.cast::<HtmlCanvasElement>() {
                 let width = canvas.width() as f64;
+                let height = canvas.height() as f64;
+
+                // Calculate scale factor for consistent visual size (1:1 pixel mapping)
+                let display_width = canvas.client_width() as f64;
+                let display_height = canvas.client_height() as f64;
+                let scale_x = width / display_width;
+                let scale_y = height / display_height;
+                let scale_factor = (scale_x + scale_y) / 2.0;
+
                 let mut particles_borrow = particles.borrow_mut();
 
                 for _ in 0..256 {
-                    particles_borrow.push(ConfettiParticle::new(width));
+                    particles_borrow.push(ConfettiParticle::new(width, scale_factor));
                 }
 
                 // Start animation if not already running
