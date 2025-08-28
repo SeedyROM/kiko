@@ -13,11 +13,10 @@ fn uptime_seconds(started_at: chrono::DateTime<chrono::Utc>) -> i64 {
 fn human_readable_uptime(started_at: chrono::DateTime<chrono::Utc>) -> String {
     let uptime_duration: chrono::TimeDelta = chrono::Utc::now().signed_duration_since(started_at);
 
-    let uptime_seconds = uptime_duration.num_seconds();
+    let secs = uptime_duration.num_seconds() % 60;
+    let minutes = uptime_duration.num_minutes() % 60;
+    let hours = uptime_duration.num_hours() % 24;
     let days = uptime_duration.num_days();
-    let hours = (uptime_seconds % 86400) / 3600;
-    let minutes = (uptime_seconds % 3600) / 60;
-    let secs = uptime_seconds % 60;
 
     if days > 0 {
         format!("{days}d {hours}h {minutes}m {secs}s")
