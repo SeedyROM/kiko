@@ -103,7 +103,7 @@ fn setup_routes(app_state: Arc<AppState>) -> Router {
         .with_state(app_state.clone());
 
     Router::new()
-        .route("/health", get(handlers::v1::health::get))
+        .route("/health", get(handlers::health::get))
         .nest("/api/v1", api_routes)
         .layer(cors_layer())
         .layer(tower_http::trace::TraceLayer::new_for_http())
