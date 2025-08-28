@@ -166,7 +166,7 @@ pub fn confetti(props: &ConfettiProps) -> Html {
                 let width = canvas.width() as f64;
                 let mut particles_borrow = particles.borrow_mut();
 
-                for _ in 0..60 {
+                for _ in 0..256 {
                     particles_borrow.push(ConfettiParticle::new(width));
                 }
 

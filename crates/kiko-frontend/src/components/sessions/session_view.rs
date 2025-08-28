@@ -4,7 +4,6 @@ use web_sys::{InputEvent, KeyboardEvent, MouseEvent};
 use yew::prelude::*;
 
 use kiko::data::{PointSession, Session, SessionMessage};
-use kiko::log;
 use kiko::serde_json;
 
 use crate::components::CopyUrlButton;
@@ -23,6 +22,7 @@ pub struct SessionViewProps {
     pub on_refresh: Option<Callback<MouseEvent>>,
     pub on_send_message: Option<Callback<String>>,
     pub participant_name: Option<String>,
+    pub participant_id: Option<String>,
     pub is_joined: bool,
 }
 
@@ -37,24 +37,20 @@ pub fn session_view(props: &SessionViewProps) -> Html {
     use_effect_with(
         (
             session.current_points().clone(),
-            props.participant_name.clone(),
+            props.participant_id.clone(),
         ),
         {
             let selected_points = selected_points.clone();
-            let participants = session.participants().clone();
-            move |(session_points, participant_name): &(
+            move |(session_points, participant_id_str): &(
                 HashMap<kiko::id::ParticipantId, Option<u32>>,
                 Option<String>,
             )| {
-                if let Some(name) = participant_name {
-                    // Find participant ID by name
-                    if let Some(participant) = participants.iter().find(|p| p.name() == name) {
-                        let participant_id = participant.id();
-                        // Check if this participant has points in the session
-                        if !session_points.contains_key(participant_id) {
-                            // No points for this participant, clear local state
-                            selected_points.set(None);
-                        }
+                if let Some(id_str) = participant_id_str {
+                    let participant_id: kiko::id::ParticipantId = id_str.clone().into();
+                    // Check if this participant has points in the session
+                    if !session_points.contains_key(&participant_id) {
+                        // No points for this participant, clear local state
+                        selected_points.set(None);
                     }
                 }
             }
@@ -306,30 +302,22 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
                     let on_point = {
                         let on_send_message = props.on_send_message.clone();
-                        let participant_name = props.participant_name.clone();
+                        let participant_id = props.participant_id.clone();
                         let session_id = session.id.clone();
-                        let participants = session.participants().clone();
                         let selected_points = selected_points.clone();
-                        let participant_map: HashMap<String, _> = participants.iter()
-                                .map(|p| (p.name().to_string(), p.id().to_string()))
-                                .collect();
                         Callback::from(move |points: u32| {
                             // Update local state immediately
                             selected_points.set(Some(points));
 
-                            if let (Some(sender), Some(name)) = (&on_send_message, &participant_name) {
-                                if let Some(participant_id) = participant_map.get(name) {
-                                    let point_value = if points == 0 { None } else { Some(points) };
-                                    let point_message = SessionMessage::PointSession(PointSession {
-                                        session_id: session_id.to_string(),
-                                        participant_id: participant_id.to_string(),
-                                        points: point_value,
-                                    });
-                                    if let Ok(message_text) = serde_json::to_string(&point_message) {
-                                        sender.emit(message_text);
-                                    }
-                                } else {
-                                    log::warn!("Participant name '{}' not found in session '{}'", name, session_id);
+                            if let (Some(sender), Some(id_str)) = (&on_send_message, &participant_id) {
+                                let point_value = if points == 0 { None } else { Some(points) };
+                                let point_message = SessionMessage::PointSession(PointSession {
+                                    session_id: session_id.to_string(),
+                                    participant_id: id_str.clone(),
+                                    points: point_value,
+                                });
+                                if let Ok(message_text) = serde_json::to_string(&point_message) {
+                                    sender.emit(message_text);
                                 }
                             }
                         })
@@ -434,19 +422,17 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                 // Show current votes if any exist
                                 {
                                     if !session.current_points().is_empty() {
-                                        let participant_map: HashMap<String, _> = session.participants().iter()
-                                            .map(|p| (p.id().to_string(), p.name()))
-                                            .collect();
                                         html! {
                                             <div class="bg-gray-50 p-4 rounded-lg">
                                                 <h4 class="text-sm font-medium text-gray-900 mb-3">{ "Current Votes:" }</h4>
                                                 <div class="space-y-2">
                                                     {
                                                         session.current_points().iter().filter_map(|(participant_id, points)| {
-                                                            participant_map.get(&participant_id.to_string()).map(|name| {
+                                                            // Find participant by ID to get their name
+                                                            session.participants().iter().find(|p| p.id() == participant_id).map(|participant| {
                                                                 html! {
                                                                     <div key={participant_id.to_string()} class="flex items-center justify-between p-2 bg-white rounded border">
-                                                                        <span class="text-sm font-medium">{ name }</span>
+                                                                        <span class="text-sm font-medium">{ participant.name() }</span>
                                                                         <span class={format!(
                                                                             "px-2 py-1 rounded text-xs font-medium {}",
                                                                             if points.is_none() || session.hide_points() {

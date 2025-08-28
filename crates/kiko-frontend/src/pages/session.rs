@@ -30,6 +30,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
     let join_attempted = use_state(|| false);
     let session_exists = use_state(|| false);
     let participant_name = use_state(String::new);
+    let participant_id = use_state(|| None::<String>);
     let is_joined = use_state(|| false);
     let is_subscribed = use_state(|| false);
 
@@ -83,12 +84,18 @@ fn session_page_inner(props: &SessionProps) -> Html {
         let ws_error = ws_error.clone();
         let ws_set_on_message = ws.set_on_message.clone();
         let confetti = confetti.clone();
+        let participant_name = participant_name.clone();
+        let participant_id = participant_id.clone();
+        let is_joined = is_joined.clone();
 
         use_effect(move || {
             let message_callback = Callback::from({
                 let session_data = session_data.clone();
                 let ws_error = ws_error.clone();
                 let confetti = confetti.clone();
+                let participant_name = participant_name.clone();
+                let participant_id = participant_id.clone();
+                let is_joined = is_joined.clone();
                 move |text: String| {
                     info!("📨 Received WebSocket message: {}", text);
 
@@ -114,6 +121,25 @@ fn session_page_inner(props: &SessionProps) -> Html {
                     match serde_json::from_str::<SessionMessage>(&text) {
                         Ok(SessionMessage::SessionUpdate(updated_session)) => {
                             info!("🔄 Session update received");
+
+                            // If we just joined and don't have a participant ID yet, find it
+                            if *is_joined
+                                && participant_id.is_none()
+                                && !participant_name.trim().is_empty()
+                            {
+                                // Look for the most recently added participant with our name
+                                // (assumes the backend adds participants in order)
+                                if let Some(participant) = updated_session
+                                    .participants()
+                                    .iter()
+                                    .filter(|p| p.name() == participant_name.trim())
+                                    .next_back()
+                                // Get the last (most recent) participant with this name
+                                {
+                                    info!("🆔 Found our participant ID: {}", participant.id());
+                                    participant_id.set(Some(participant.id().to_string()));
+                                }
+                            }
 
                             // Check if points were revealed (hide_points changed from true to false)
                             if let Some(current_session) = session_data.as_ref() {
@@ -481,6 +507,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                     on_refresh={refresh_session.clone()}
                                     on_send_message={Some(ws.send.clone())}
                                     participant_name={if *is_joined { Some((*participant_name).clone()) } else { None }}
+                                    participant_id={if *is_joined { (*participant_id).clone() } else { None }}
                                     is_joined={*is_joined}
                                 />
                             </div>
