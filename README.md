@@ -39,3 +39,17 @@ cargo doc --no-deps --document-private-items
 ```
 
 Add `--open` to automatically open the docs in your browser after generation.
+
+### 🔧 Pre-commit Hooks
+
+Pre-commit hooks are configured to run `cargo fmt` and `cargo clippy` automatically on each commit:
+
+```bash
+# Install pre-commit hooks (one-time setup)
+pre-commit install
+
+# Run hooks manually on all files
+pre-commit run --all-files
+```
+
+The hooks will format code and check for linting issues, treating warnings as errors.
