@@ -349,16 +349,44 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         })
                     };
 
+                    let on_toggle_hide_points = {
+                        let on_send_message = props.on_send_message.clone();
+                        Callback::from(move |_: MouseEvent| {
+                            if let Some(sender) = &on_send_message {
+                                let toggle_message = SessionMessage::ToggleHidePoints;
+                                if let Ok(message_text) = serde_json::to_string(&toggle_message) {
+                                    sender.emit(message_text);
+                                }
+                            }
+                        })
+                    };
+
                     html! {
                         <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-lg font-semibold text-gray-900">{ "Story Points" }</h3>
-                                <button
-                                    class="px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-                                    onclick={on_clear_points}
-                                >
-                                    { "Clear All" }
-                                </button>
+                                <div class="flex items-center space-x-2">
+                                    <button
+                                        class={format!(
+                                            "px-3 py-1 rounded-md focus:outline-none focus:ring-2 text-sm {}",
+                                            if session.hide_points() {
+                                                "bg-green-100 text-green-700 hover:bg-green-200 focus:ring-green-500"
+                                            } else {
+                                                "bg-blue-100 text-blue-700 hover:bg-blue-200 focus:ring-blue-500"
+                                            }
+                                        )}
+                                        onclick={on_toggle_hide_points}
+                                        title={if session.hide_points() { "Show Points" } else { "Hide Points" }}
+                                    >
+                                        { if session.hide_points() { "Show Points" } else { "Hide Points" } }
+                                    </button>
+                                    <button
+                                        class="px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                                        onclick={on_clear_points}
+                                    >
+                                        { "Clear All" }
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="space-y-4">
@@ -414,15 +442,19 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                                         <span class="text-sm font-medium">{ name }</span>
                                                                         <span class={format!(
                                                                             "px-2 py-1 rounded text-xs font-medium {}",
-                                                                            if points.is_none() {
+                                                                            if points.is_none() || session.hide_points() {
                                                                                 "bg-gray-200 text-gray-700"
                                                                             } else {
                                                                                 "bg-blue-100 text-blue-800"
                                                                             }
                                                                         )}>{
-                                                                            match points {
-                                                                                Some(p) => p.to_string(),
-                                                                                None => "?".to_string(),
+                                                                            if session.hide_points() {
+                                                                                "•••".to_string()
+                                                                            } else {
+                                                                                match points {
+                                                                                    Some(p) => p.to_string(),
+                                                                                    None => "?".to_string(),
+                                                                                }
                                                                             }
                                                                         }</span>
                                                                     </div>

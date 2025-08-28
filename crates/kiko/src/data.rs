@@ -60,7 +60,7 @@ impl Session {
             members: Vec::new(),
             current_topic: String::new(),
             current_points: HashMap::new(),
-            hide_points: false,
+            hide_points: true,
         }
     }
 
@@ -92,6 +92,10 @@ impl Session {
 
     pub fn clear_points(&mut self) {
         self.current_points.clear();
+    }
+
+    pub fn hide_points(&self) -> bool {
+        self.hide_points
     }
 
     pub fn toggle_hide_points(&mut self) {
