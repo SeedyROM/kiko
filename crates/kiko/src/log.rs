@@ -10,11 +10,15 @@ use crate::errors::LogError;
 /// Setup the logging system for the application for WASM.
 /// This function will install the [`tracing-web`] logging system.
 pub fn setup() -> Result<(), LogError> {
+    use tracing_subscriber::EnvFilter;
     use tracing_subscriber::fmt::format::{FmtSpan, Pretty};
     use tracing_subscriber::fmt::time::UtcTime;
     use tracing_subscriber::layer::SubscriberExt;
-
     use tracing_subscriber::util::SubscriberInitExt;
+
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("debug"))
+        .add_directive("yew=off".parse().unwrap());
 
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false)
@@ -24,6 +28,7 @@ pub fn setup() -> Result<(), LogError> {
     let perf_layer = tracing_web::performance_layer().with_details_from_fields(Pretty::default());
 
     tracing_subscriber::registry()
+        .with(filter)
         .with(fmt_layer)
         .with(perf_layer)
         .init();

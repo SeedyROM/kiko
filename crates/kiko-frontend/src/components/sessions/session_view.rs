@@ -8,6 +8,7 @@ use kiko::log;
 use kiko::serde_json;
 
 use crate::components::CopyUrlButton;
+use crate::providers::confetti::use_confetti;
 
 fn is_point_selected(selected_points: Option<u32>, points: u32) -> bool {
     selected_points
@@ -30,6 +31,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
     let session = &props.session;
     let topic_input = use_state(String::new);
     let selected_points = use_state(|| None::<u32>);
+    let confetti = use_confetti();
 
     // Sync selected_points with session state when points are cleared
     use_effect_with(
@@ -351,10 +353,15 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
                     let on_toggle_hide_points = {
                         let on_send_message = props.on_send_message.clone();
+                        let confetti = confetti.clone();
+                        let session = session.clone();
                         Callback::from(move |_: MouseEvent| {
                             if let Some(sender) = &on_send_message {
                                 let toggle_message = SessionMessage::ToggleHidePoints;
                                 if let Ok(message_text) = serde_json::to_string(&toggle_message) {
+                                    if session.hide_points() {
+                                        confetti.trigger.emit(());
+                                    }
                                     sender.emit(message_text);
                                 }
                             }
