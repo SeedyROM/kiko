@@ -15,34 +15,89 @@ struct ConfettiParticle {
     size: f64,
     rotation: f64,
     rotation_speed: f64,
+    shape: ConfettiShape,
+    flutter_offset: f64,
+    flutter_speed: f64,
+    flutter_amplitude: f64,
+    opacity: f64,
+    time: f64,
+}
+
+#[derive(Clone, PartialEq)]
+enum ConfettiShape {
+    Square,
+    Circle,
+    Rectangle { width: f64, height: f64 },
+    Line { length: f64 },
 }
 
 impl ConfettiParticle {
     fn new(width: f64) -> Self {
         let colors = [
-            "#ff6b6b", "#4ecdc4", "#45b7d1", "#96ceb4", "#feca57", "#ff9ff3", "#54a0ff", "#5f27cd",
-            "#00d2d3", "#ff9f43",
+            "#FF0080", "#00FF80", "#8000FF", "#FF8000", "#0080FF", "#80FF00", "#FF0040", "#40FF00",
+            "#0040FF", "#FF4000", "#4000FF", "#00FF40", "#FF1493", "#00CED1", "#FFD700", "#FF69B4",
+            "#00FA9A", "#FF6347", "#DA70D6", "#98FB98", "#F0E68C", "#FFA07A", "#20B2AA", "#87CEEB",
+            "#DDA0DD", "#90EE90", "#FFFF54", "#FF7F50", "#6495ED", "#ADFF2F",
         ];
         let color_index = (Math::random() * colors.len() as f64) as usize;
 
+        let shapes = [
+            ConfettiShape::Square,
+            ConfettiShape::Circle,
+            ConfettiShape::Rectangle {
+                width: Math::random() * 15.0 + 5.0,
+                height: Math::random() * 8.0 + 3.0,
+            },
+            ConfettiShape::Line {
+                length: Math::random() * 20.0 + 10.0,
+            },
+        ];
+        let shape_index = (Math::random() * shapes.len() as f64) as usize;
+
         Self {
             x: Math::random() * width,
-            y: -20.0,
-            vx: (Math::random() - 0.5) * 10.0,
-            vy: Math::random() * -15.0 - 5.0,
-            gravity: 0.3,
+            y: -50.0,
+            vx: (Math::random() - 0.5) * 16.0,
+            vy: Math::random() * -20.0 - 8.0,
+            gravity: Math::random() * 0.4 + 0.2,
             color: colors[color_index].to_string(),
-            size: Math::random() * 8.0 + 4.0,
+            size: Math::random() * 12.0 + 6.0,
             rotation: Math::random() * 360.0,
-            rotation_speed: (Math::random() - 0.5) * 10.0,
+            rotation_speed: (Math::random() - 0.5) * 15.0,
+            shape: shapes[shape_index].clone(),
+            flutter_offset: Math::random() * 360.0,
+            flutter_speed: Math::random() * 3.0 + 1.0,
+            flutter_amplitude: Math::random() * 30.0 + 10.0,
+            opacity: 1.0,
+            time: 0.0,
         }
     }
 
-    fn update(&mut self) {
-        self.x += self.vx;
+    fn update(&mut self, canvas_height: f64) {
+        self.time += 0.16;
+
+        // Add fluttering horizontal movement
+        let flutter = (self.time * self.flutter_speed + self.flutter_offset).sin()
+            * self.flutter_amplitude
+            * 0.1;
+        self.x += self.vx + flutter;
         self.y += self.vy;
+
+        // Apply gravity with slight randomness
         self.vy += self.gravity;
-        self.rotation += self.rotation_speed;
+
+        // Add air resistance to prevent particles from moving too fast
+        self.vx *= 0.998;
+        self.vy *= 0.999;
+
+        // Update rotation with flutter effect
+        self.rotation += self.rotation_speed + flutter * 0.5;
+
+        // Only fade out particles that are near the bottom
+        if self.y > canvas_height * 0.8 {
+            let fade_progress = (self.y - canvas_height * 0.8) / (canvas_height * 0.2);
+            self.opacity = 1.0 - fade_progress;
+        }
     }
 
     fn draw(&self, ctx: &CanvasRenderingContext2d) {
@@ -50,14 +105,43 @@ impl ConfettiParticle {
         ctx.translate(self.x, self.y).unwrap();
         ctx.rotate(self.rotation * std::f64::consts::PI / 180.0)
             .unwrap();
+
+        // Set opacity for fading effect
+        ctx.set_global_alpha(self.opacity);
+
         #[allow(warnings)]
         ctx.set_fill_style(&wasm_bindgen::JsValue::from_str(&self.color));
-        ctx.fill_rect(-self.size / 2.0, -self.size / 2.0, self.size, self.size);
+
+        // Draw different shapes based on the particle's shape
+        match &self.shape {
+            ConfettiShape::Square => {
+                ctx.fill_rect(-self.size / 2.0, -self.size / 2.0, self.size, self.size);
+            }
+            ConfettiShape::Circle => {
+                ctx.begin_path();
+                ctx.arc(0.0, 0.0, self.size / 2.0, 0.0, 2.0 * std::f64::consts::PI)
+                    .unwrap();
+                ctx.fill();
+            }
+            ConfettiShape::Rectangle { width, height } => {
+                ctx.fill_rect(-width / 2.0, -height / 2.0, *width, *height);
+            }
+            ConfettiShape::Line { length } => {
+                ctx.set_line_width(self.size / 3.0);
+                #[allow(deprecated)]
+                ctx.set_stroke_style(&wasm_bindgen::JsValue::from_str(&self.color));
+                ctx.begin_path();
+                ctx.move_to(-length / 2.0, 0.0);
+                ctx.line_to(*length / 2.0, 0.0);
+                ctx.stroke();
+            }
+        }
+
         ctx.restore();
     }
 
     fn is_off_screen(&self, canvas_height: f64) -> bool {
-        self.y > canvas_height + 50.0
+        self.y > canvas_height + 50.0 || self.opacity <= 0.0
     }
 }
 
@@ -82,7 +166,7 @@ pub fn confetti(props: &ConfettiProps) -> Html {
                 let width = canvas.width() as f64;
                 let mut particles_borrow = particles.borrow_mut();
 
-                for _ in 0..50 {
+                for _ in 0..60 {
                     particles_borrow.push(ConfettiParticle::new(width));
                 }
 
@@ -109,7 +193,7 @@ pub fn confetti(props: &ConfettiProps) -> Html {
                             let mut particles_borrow = particles_inner.borrow_mut();
 
                             particles_borrow.retain_mut(|particle| {
-                                particle.update();
+                                particle.update(height);
                                 particle.draw(&ctx);
                                 !particle.is_off_screen(height)
                             });
