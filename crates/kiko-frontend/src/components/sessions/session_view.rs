@@ -10,7 +10,10 @@ use kiko::serde_json;
 use crate::components::CopyUrlButton;
 
 fn is_point_selected(selected_points: Option<u32>, points: u32) -> bool {
-    selected_points == Some(points).filter(|&p| p != 0).or(if points == 0 { Some(0) } else { None })
+    selected_points
+        == Some(points)
+            .filter(|&p| p != 0)
+            .or(if points == 0 { Some(0) } else { None })
 }
 
 #[derive(Properties, PartialEq)]
@@ -25,27 +28,36 @@ pub struct SessionViewProps {
 #[function_component(SessionView)]
 pub fn session_view(props: &SessionViewProps) -> Html {
     let session = &props.session;
-    let topic_input = use_state(|| String::new());
+    let topic_input = use_state(String::new);
     let selected_points = use_state(|| None::<u32>);
 
     // Sync selected_points with session state when points are cleared
-    use_effect_with((session.current_points().clone(), props.participant_name.clone()), {
-        let selected_points = selected_points.clone();
-        let participants = session.participants().clone();
-        move |(session_points, participant_name): &(HashMap<kiko::id::ParticipantId, Option<u32>>, Option<String>)| {
-            if let Some(name) = participant_name {
-                // Find participant ID by name
-                if let Some(participant) = participants.iter().find(|p| p.name() == name) {
-                    let participant_id = participant.id();
-                    // Check if this participant has points in the session
-                    if !session_points.contains_key(participant_id) {
-                        // No points for this participant, clear local state
-                        selected_points.set(None);
+    use_effect_with(
+        (
+            session.current_points().clone(),
+            props.participant_name.clone(),
+        ),
+        {
+            let selected_points = selected_points.clone();
+            let participants = session.participants().clone();
+            move |(session_points, participant_name): &(
+                HashMap<kiko::id::ParticipantId, Option<u32>>,
+                Option<String>,
+            )| {
+                if let Some(name) = participant_name {
+                    // Find participant ID by name
+                    if let Some(participant) = participants.iter().find(|p| p.name() == name) {
+                        let participant_id = participant.id();
+                        // Check if this participant has points in the session
+                        if !session_points.contains_key(participant_id) {
+                            // No points for this participant, clear local state
+                            selected_points.set(None);
+                        }
                     }
                 }
             }
-        }
-    });
+        },
+    );
 
     // WASM-compatible time functions using JavaScript Date API
     let get_current_timestamp = || -> u64 { (js_sys::Date::now() / 1000.0) as u64 };
@@ -302,7 +314,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         Callback::from(move |points: u32| {
                             // Update local state immediately
                             selected_points.set(Some(points));
-                            
+
                             if let (Some(sender), Some(name)) = (&on_send_message, &participant_name) {
                                 if let Some(participant_id) = participant_map.get(name) {
                                     let point_value = if points == 0 { None } else { Some(points) };
@@ -327,7 +339,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         Callback::from(move |_: MouseEvent| {
                             // Clear local state immediately
                             selected_points.set(None);
-                            
+
                             if let Some(sender) = &on_send_message {
                                 let clear_message = SessionMessage::ClearPoints;
                                 if let Ok(message_text) = serde_json::to_string(&clear_message) {

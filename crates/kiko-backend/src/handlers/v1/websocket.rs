@@ -106,7 +106,6 @@ async fn setup_subscription(
             loop {
                 notified.await; // Wait for notification
                 log::debug!("Received notification for session: {:?}", session_id);
-
                 // Create the next notification listener BEFORE processing the current message
                 notified = notifier.notified();
 
@@ -355,6 +354,40 @@ async fn handle_clear_points(
     Ok(WebSocketResponse::None)
 }
 
+async fn handle_toggle_hide_points(
+    state: &Arc<crate::AppState>,
+    conn_state: &mut ConnectionState,
+) -> Result<WebSocketResponse, WebSocketError> {
+    log::info!("Toggling hide points");
+
+    let session_id = match &conn_state.session_id {
+        Some(id) => id.clone(),
+        None => return Err(WebSocketError::NotSubscribed),
+    };
+
+    // Get the current session
+    let mut session = state
+        .sessions
+        .get(&session_id)
+        .await
+        .map_err(|_| WebSocketError::SessionNotFound(session_id.to_string()))?;
+
+    session.toggle_hide_points();
+
+    // Update the session in storage
+    state
+        .sessions
+        .update(&session_id, &session)
+        .await
+        .map_err(|_| WebSocketError::InvalidMessage("Failed to update session".to_string()))?;
+
+    // Broadcast the updated session to all subscribers
+    let update_message = SessionMessage::SessionUpdate(session);
+    state.pub_sub.publish(session_id, update_message).await;
+
+    Ok(WebSocketResponse::None)
+}
+
 async fn send_error(socket: &mut WebSocket, error: &WebSocketError) -> bool {
     let error_msg = error.to_string();
     log::error!("{}", error_msg);
@@ -481,17 +514,24 @@ async fn handle_text_message(
     log::debug!("Received message from {}: {:?}", client_addr, session_msg);
 
     let result = match &session_msg {
+        // Session management
         SessionMessage::CreateSession(create) => handle_create_session(create, state).await,
         SessionMessage::JoinSession(join) => handle_join_session(join, state, conn_state).await,
         SessionMessage::SubscribeToSession(subscribe) => {
             handle_subscribe_to_session(subscribe, state, conn_state).await
         }
+
+        // Participant management
         SessionMessage::AddParticipant(add) => handle_add_participant(add, state).await,
         SessionMessage::RemoveParticipant(remove) => handle_remove_participant(remove, state).await,
+
+        // Session actions
         SessionMessage::SetTopic(topic) => handle_set_topic(topic, state, conn_state).await,
         SessionMessage::PointSession(point) => handle_point_session(point, state, conn_state).await,
         SessionMessage::ClearPoints => handle_clear_points(state, conn_state).await,
+        SessionMessage::ToggleHidePoints => handle_toggle_hide_points(state, conn_state).await,
 
+        // Session updates (usually from server-side, but handled here for completeness)
         SessionMessage::SessionUpdate(update) => handle_session_update(update, state).await,
     };
 

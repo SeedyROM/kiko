@@ -463,9 +463,9 @@ pub fn session_page(props: &SessionProps) -> Html {
                                 }
                             }
 
-                            <SessionView 
-                                session={session.clone()} 
-                                on_refresh={refresh_session.clone()} 
+                            <SessionView
+                                session={session.clone()}
+                                on_refresh={refresh_session.clone()}
                                 on_send_message={Some(ws.send.clone())}
                                 participant_name={if *is_joined { Some((*participant_name).clone()) } else { None }}
                                 is_joined={*is_joined}

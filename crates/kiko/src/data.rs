@@ -44,6 +44,7 @@ pub struct Session {
     members: Vec<Participant>,
     current_topic: String,
     current_points: HashMap<ParticipantId, Option<u32>>,
+    hide_points: bool,
 }
 
 impl Session {
@@ -59,6 +60,7 @@ impl Session {
             members: Vec::new(),
             current_topic: String::new(),
             current_points: HashMap::new(),
+            hide_points: false,
         }
     }
 
@@ -90,6 +92,10 @@ impl Session {
 
     pub fn clear_points(&mut self) {
         self.current_points.clear();
+    }
+
+    pub fn toggle_hide_points(&mut self) {
+        self.hide_points = !self.hide_points;
     }
 
     pub fn point(&mut self, participant_id: &ParticipantId, points: Option<u32>) {
@@ -221,4 +227,5 @@ pub enum SessionMessage {
     SetTopic(String),
     ClearPoints,
     SessionUpdate(Session),
+    ToggleHidePoints,
 }
