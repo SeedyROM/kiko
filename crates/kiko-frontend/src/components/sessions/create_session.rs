@@ -166,7 +166,6 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                     session_name.set(String::new());
                     duration_hours.set(0);
                     duration_minutes.set(30);
-                    duration_minutes.set(0);
                     success.set(false);
                 });
             }

@@ -46,7 +46,12 @@ async fn main() -> Result<(), Report> {
     let app = setup_routes(app_state);
 
     // Setup the server
-    let listener = TcpListener::bind("127.0.0.1:3030").await?;
+    let port = std::env::var("KIKO_BACKEND_PORT")
+        .unwrap_or_else(|_| "3030".to_string())
+        .parse::<u16>()
+        .unwrap_or(3030);
+    let ipv6 = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], port));
+    let listener = TcpListener::bind(ipv6).await?;
     log::info!("Starting server on http://{}", listener.local_addr()?);
     log::info!("Press Ctrl+C to stop the server");
 
