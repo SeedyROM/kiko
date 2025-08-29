@@ -115,24 +115,24 @@ pub fn session_view(props: &SessionViewProps) -> Html {
     };
 
     html! {
-        <div class="min-h-screen bg-gray-50 pb-8">
+        <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-8">
             // Compact Header Bar - Fixed at top
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10 px-4 py-3 sm:px-6">
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 px-4 py-3 sm:px-6">
                 <div class="max-w-7xl mx-auto">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4">
-                            <h1 class="text-xl font-semibold text-gray-900">{ session.name() }</h1>
+                            <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{ session.name() }</h1>
                             <ConnectionIndicator state={ws_state.clone()} />
                             <span class={format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
-                                if is_active { "bg-green-100 text-green-800" } else { "bg-red-100 text-red-800" })}>
+                                if is_active { "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300" } else { "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300" })}>
                                 { if is_active { "Active" } else { "Ended" } }
                             </span>
                         </div>
                         <div class="flex items-center space-x-3">
                             <div class="text-right">
-                                <div class="text-xs md:text-sm text-gray-600">{ "Time Remaining" }</div>
+                                <div class="text-xs md:text-sm text-gray-600 dark:text-gray-400">{ "Time Remaining" }</div>
                                 <div class={format!("text-md md:text-lg font-semibold {}",
-                                    if is_active { "text-green-600" } else { "text-red-600" })}>
+                                    if is_active { "text-green-600 dark:text-green-400" } else { "text-red-600 dark:text-red-400" })}>
                                     { if is_active { format_duration(remaining) } else { "Ended".to_string() } }
                                 </div>
                             </div>
@@ -141,7 +141,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                     let callback = on_refresh.clone();
                                     html! {
                                         <button
-                                            class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
+                                            class="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
                                             onclick={Callback::from(move |e| callback.emit(e))}
                                             title="Refresh session"
                                         >
@@ -167,24 +167,24 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
 
                         // Session Details - Compact
-                        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">{ "Session Details" }</h3>
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Session Details" }</h3>
                             <div class="space-y-3 text-sm flex lg:block gap-x-4 justify-between">
                                 <div>
-                                    <div class="text-gray-600 block mb-1">{ "Session ID" }</div>
-                                    <div class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{ format!("{}", session.id) }</div>
+                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Session ID" }</div>
+                                    <div class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 px-2 py-1 rounded">{ format!("{}", session.id) }</div>
                                 </div>
                                 <div>
-                                    <div class="text-gray-600 block mb-1">{ "Started" }</div>
-                                    <div class="text-xs">{ format_timestamp(session.started()) }</div>
+                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Started" }</div>
+                                    <div class="text-xs text-gray-900 dark:text-gray-100">{ format_timestamp(session.started()) }</div>
                                 </div>
                                 <div>
-                                    <div class="text-gray-600 block mb-1">{ "Duration" }</div>
-                                    <div>{ format_duration(session.duration()) }</div>
+                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Duration" }</div>
+                                    <div class="text-gray-900 dark:text-gray-100">{ format_duration(session.duration()) }</div>
                                 </div>
                                 <div>
-                                    <div class="text-gray-600 block mb-1">{ "Participants" }</div>
-                                    <div class="font-semibold text-right lg:text-left">{ session.participants().len() }</div>
+                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Participants" }</div>
+                                    <div class="font-semibold text-right lg:text-left text-gray-900 dark:text-gray-100">{ session.participants().len() }</div>
                                 </div>
                             </div>
                         </div>
@@ -284,19 +284,19 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                             };
 
                                             html! {
-                                                <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
-                                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">{ "Story Topic" }</h3>
+                                                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
+                                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
                                                     {
                                                         if !session.current_topic().is_empty() {
                                                             html! {
-                                                                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4">
-                                                                    <p class="text-blue-900 font-medium">{ session.current_topic() }</p>
+                                                                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-4">
+                                                                    <p class="text-blue-900 dark:text-blue-300 font-medium">{ session.current_topic() }</p>
                                                                 </div>
                                                             }
                                                         } else {
                                                             html! {
-                                                                <div class="bg-gray-50 border border-gray-200 p-4 rounded-lg mb-4">
-                                                                    <p class="text-gray-500 italic">{ "No topic set yet" }</p>
+                                                                <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-4">
+                                                                    <p class="text-gray-500 dark:text-gray-400 italic">{ "No topic set yet" }</p>
                                                                 </div>
                                                             }
                                                         }
@@ -304,7 +304,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                     <div class="flex space-x-2">
                                                         <input
                                                             type="text"
-                                                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                             placeholder="Enter story to estimate..."
                                                             value={(*topic_input).clone()}
                                                             oninput={{
@@ -330,17 +330,17 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                             html! {}
                                         }
                                     }
-                                    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
                                         <div class="flex items-center justify-between mb-6">
-                                            <h3 class="text-xl font-semibold text-gray-900">{ "Choose Your Estimate" }</h3>
+                                            <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{ "Choose Your Estimate" }</h3>
                                             <div class="flex items-center space-x-2">
                                                 <button
                                                     class={format!(
                                                         "px-3 py-1 rounded-lg focus:outline-none focus:ring-2 text-sm transition-colors {}",
                                                         if session.hide_points() {
-                                                            "bg-green-100 text-green-700 hover:bg-green-200 focus:ring-green-500"
+                                                            "bg-green-50 dark:bg-green-800/60 text-green-600 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-700/70 focus:ring-green-500"
                                                         } else {
-                                                            "bg-blue-100 text-blue-700 hover:bg-blue-200 focus:ring-blue-500"
+                                                            "bg-blue-50 dark:bg-blue-800/60 text-blue-600 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-700/70 focus:ring-blue-500"
                                                         }
                                                     )}
                                                     onclick={on_toggle_hide_points}
@@ -349,7 +349,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                     { if session.hide_points() { "👁️ Show" } else { "🙈 Hide" } }
                                                 </button>
                                                 <button
-                                                    class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm transition-colors"
+                                                    class="px-3 py-1 bg-red-50 dark:bg-red-800/60 text-red-600 dark:text-red-200 rounded-lg hover:bg-red-100 dark:hover:bg-red-700/70 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm transition-colors"
                                                     onclick={on_clear_points}
                                                 >
                                                     { "🗑️ Clear All" }
@@ -378,11 +378,11 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                             class={format!(
                                                                 "h-12 rounded-lg border-2 font-bold text-lg transition-all duration-200 transform hover:scale-105 focus:scale-105 {}",
                                                                 if is_selected {
-                                                                    "bg-blue-600 text-white border-blue-600 shadow-lg ring-4 ring-blue-200"
+                                                                    "bg-blue-600 text-white border-blue-600 shadow-lg ring-4 ring-blue-200 dark:ring-blue-800"
                                                                 } else if points == 0 {
-                                                                    "bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400"
+                                                                    "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-800/40 hover:border-orange-400 dark:hover:border-orange-600"
                                                                 } else {
-                                                                    "bg-white text-gray-900 border-gray-300 hover:border-blue-400 hover:bg-blue-50 shadow-sm hover:shadow"
+                                                                    "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-600 shadow-sm hover:shadow"
                                                                 }
                                                             )}
                                                             onclick={point_callback}
@@ -399,7 +399,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                             if !session.current_points().is_empty() {
                                                 html! {
                                                     <div class="border-t pt-6">
-                                                        <h4 class="text-lg font-semibold text-gray-900 mb-4">
+                                                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                                             {"Votes"}
                                                         </h4>
                                                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -408,21 +408,21 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                                     // Find participant by ID to get their name
                                                                     session.participants().iter().find(|p| p.id() == participant_id).map(|participant| {
                                                                         html! {
-                                                                            <div key={participant_id.to_string()} class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                                                            <div key={participant_id.to_string()} class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                                                                 <div class="flex items-center space-x-3">
                                                                                     <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
                                                                                         <span class="text-sm font-medium text-white">
                                                                                             { participant.name().chars().next().unwrap_or('?').to_uppercase().to_string() }
                                                                                         </span>
                                                                                     </div>
-                                                                                    <span class="text-sm font-medium text-gray-900">{ participant.name() }</span>
+                                                                                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{ participant.name() }</span>
                                                                                 </div>
                                                                                 <span class={format!(
                                                                                     "px-3 py-1 rounded-full text-sm font-bold {}",
                                                                                     if points.is_none() || session.hide_points() {
-                                                                                        "bg-gray-200 text-gray-700"
+                                                                                        "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
                                                                                     } else {
-                                                                                        "bg-blue-100 text-blue-800"
+                                                                                        "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300"
                                                                                     }
                                                                                 )}>{
                                                                                     if session.hide_points() {
@@ -459,8 +459,8 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         {
                             if !props.is_joined || session.participants().is_empty() {
                                 html! {
-                                    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                             { format!("Participants ({})", session.participants().len()) }
                                         </h3>
 
@@ -471,8 +471,8 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                         <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                                         </svg>
-                                                        <p class="mt-4 text-lg text-gray-500">{ "Waiting for participants..." }</p>
-                                                        <p class="text-sm text-gray-400 mb-4">{ "Share this session link to get started" }</p>
+                                                        <p class="mt-4 text-lg text-gray-500 dark:text-gray-400">{ "Waiting for participants..." }</p>
+                                                        <p class="text-sm text-gray-400 dark:text-gray-500 mb-4">{ "Share this session link to get started" }</p>
                                                         <CopyUrlButton />
                                                     </div>
                                                 }
@@ -482,7 +482,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                         {
                                                             session.participants().iter().map(|participant| {
                                                                 html! {
-                                                                    <div key={participant.id().to_string()} class="flex items-center p-4 bg-gray-50 rounded-lg">
+                                                                    <div key={participant.id().to_string()} class="flex items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                                                         <div class="flex-shrink-0">
                                                                             <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
                                                                                 <span class="text-sm font-medium text-white">
@@ -491,7 +491,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                                             </div>
                                                                         </div>
                                                                         <div class="ml-3">
-                                                                            <p class="text-sm font-medium text-gray-900">{ participant.name() }</p>
+                                                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{ participant.name() }</p>
                                                                         </div>
                                                                     </div>
                                                                 }

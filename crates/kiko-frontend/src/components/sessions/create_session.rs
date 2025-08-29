@@ -207,9 +207,9 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
     };
 
     let form_classes = if props.modal {
-        "bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
+        "bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md mx-4"
     } else {
-        "bg-white border border-gray-200 rounded-lg  p-6"
+        "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6"
     };
 
     html! {
@@ -217,10 +217,10 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
             <div class={form_classes}>
                 // Header
                 <div class="mb-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-2">
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                         { "Create New Session" }
                     </h2>
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
                         { "Set up a new pointing poker session for your team" }
                     </p>
                 </div>
@@ -228,13 +228,13 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                 <form onsubmit={on_submit} class="space-y-4">
                     // Session Name Input
                     <div>
-                        <label for="session-name" class="block text-sm font-medium text-gray-700 mb-1">
+                        <label for="session-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             { "Session Name" }
                         </label>
                         <input
                             id="session-name"
                             type="text"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Sprint Planning, Story Estimation..."
                             value={(*session_name).clone()}
                             oninput={on_name_change}
@@ -244,7 +244,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
 
                     // Duration Section
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             { "Session Duration" }
                         </label>
 
@@ -255,13 +255,13 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                                     type="number"
                                     min="0"
                                     max="24"
-                                    class="w-16 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                                    class="w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                     value={duration_hours.to_string()}
                                     onchange={on_hours_change}
                                     disabled={*loading}
                                     aria-label="Duration Hours"
                                 />
-                                <span class="text-sm text-gray-600">{ "hours" }</span>
+                                <span class="text-sm text-gray-600 dark:text-gray-400">{ "hours" }</span>
                             </div>
 
                             <div class="flex items-center space-x-1">
@@ -269,13 +269,13 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                                     type="number"
                                     min="0"
                                     max="59"
-                                    class="w-16 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                                    class="w-16 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                                     value={duration_minutes.to_string()}
                                     onchange={on_minutes_change}
                                     disabled={*loading}
                                     aria-label="Duration Minutes"
                                 />
-                                <span class="text-sm text-gray-600">{ "minutes" }</span>
+                                <span class="text-sm text-gray-600 dark:text-gray-400">{ "minutes" }</span>
                             </div>
                         </div>
 
@@ -283,7 +283,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                         <div class="flex flex-wrap gap-1">
                             <button
                                 type="button"
-                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                                 onclick={set_preset_duration.reform(|_| (0, 10))}
                                 disabled={*loading}
                             >
@@ -291,7 +291,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                             </button>
                             <button
                                 type="button"
-                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                                 onclick={set_preset_duration.reform(|_| (0, 15))}
                                 disabled={*loading}
                             >
@@ -299,7 +299,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                             </button>
                             <button
                                 type="button"
-                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                                 onclick={set_preset_duration.reform(|_| (0, 30))}
                                 disabled={*loading}
                             >
@@ -307,7 +307,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                             </button>
                                                    <button
                                 type="button"
-                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                                 onclick={set_preset_duration.reform(|_| (0, 45))}
                                 disabled={*loading}
                             >
@@ -315,7 +315,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                             </button>
                             <button
                                 type="button"
-                                class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded border text-gray-700 disabled:opacity-50"
+                                class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                                 onclick={set_preset_duration.reform(|_| (1, 0))}
                                 disabled={*loading}
                             >
@@ -328,8 +328,8 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                     {
                         if let Some(error) = error_msg.as_ref() {
                             html! {
-                                <div class="p-3 bg-red-50 border border-red-200 rounded-md">
-                                    <p class="text-sm text-red-700">{ error }</p>
+                                <div class="p-3 bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-700 rounded-md">
+                                    <p class="text-sm text-red-700 dark:text-red-400">{ error }</p>
                                 </div>
                             }
                         } else {
@@ -341,8 +341,8 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                     {
                         if *success {
                             html! {
-                                <div class="p-3 bg-green-50 border border-green-200 rounded-md">
-                                    <p class="text-sm text-green-700">
+                                <div class="p-3 bg-green-100 dark:bg-green-900/40 border border-green-300 dark:border-green-700 rounded-md">
+                                    <p class="text-sm text-green-700 dark:text-green-400">
                                         { "✅ Session created successfully!" }
                                     </p>
                                 </div>
@@ -359,7 +359,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                                 html! {
                                     <button
                                         type="button"
-                                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                                         onclick={on_cancel_click}
                                         disabled={*loading}
                                     >

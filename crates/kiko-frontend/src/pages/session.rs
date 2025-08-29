@@ -279,7 +279,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
             {
                 if let Some(ws_err) = ws_error.as_ref() {
                     html! {
-                        <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 md:p-6">
+                        <div class="mb-4 bg-yellow-50 dark:bg-yellow-700 border-b-2 border-yellow-200 dark:border-yellow-900 p-4 md:p-6">
                             <div class="flex items-start mx-auto max-w-7xl">
                                 <div class="flex-shrink-0">
                                     <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -287,11 +287,11 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-yellow-800">{ "WebSocket Issue" }</h3>
-                                    <p class="text-sm text-yellow-700 mt-1">{ ws_err }</p>
+                                    <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-300">{ "WebSocket Issue" }</h3>
+                                    <p class="text-sm text-yellow-700 dark:text-gray-300 mt-1">{ ws_err }</p>
                                     <div class="mt-2">
                                         <button
-                                            class="text-sm bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded-md transition-colors"
+                                            class="text-sm bg-yellow-100 dark:bg-gray-700 hover:bg-yellow-200 dark:hover:bg-gray-600 text-yellow-800 dark:text-gray-200 px-3 py-1 rounded-md transition-colors"
                                             onclick={{
                                                 let ws_connect = ws.connect.clone();
                                                 let ws_error = ws_error.clone();
@@ -319,7 +319,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
             {
                 if let ConnectionState::Error(err) = &ws.state {
                     html! {
-                        <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 md:p-6">
+                        <div class="mb-4 bg-red-100 dark:bg-red-950/20 border-b-2 border-red-300 dark:border-red-900 p-4 md:p-6">
                             <div class="flex items-start mx-auto max-w-7xl">
                                 <div class="flex-shrink-0">
                                     <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -327,11 +327,11 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-red-800">{ "Connection Failed" }</h3>
-                                    <p class="text-sm text-red-700 mt-1">{ err }</p>
+                                    <h3 class="text-sm font-medium text-red-800 dark:text-red-300">{ "Connection Failed" }</h3>
+                                    <p class="text-sm text-red-700 dark:text-red-400 mt-1">{ err }</p>
                                     <div class="mt-2">
                                         <button
-                                            class="text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-md transition-colors"
+                                            class="text-sm bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 text-red-800 dark:text-red-200 px-3 py-1 rounded-md transition-colors"
                                             onclick={{
                                                 let ws_connect = ws.connect.clone();
                                                 let join_attempted = join_attempted.clone();
@@ -362,16 +362,16 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                <span class="text-gray-600">{ "Loading session..." }</span>
+                                <span class="text-gray-600 dark:text-gray-400">{ "Loading session..." }</span>
                             </div>
                         </div>
                     }
                 } else if let Some(error) = error_msg.as_ref() {
                     html! {
-                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 md:p-6 mx-auto max-w-7xl">
+                        <div class="bg-red-100 dark:bg-red-900 border-b border-red-300 dark:border-red-700 rounded-lg p-4 md:p-6 mx-auto max-w-7xl">
                             <div>
-                                <h2 class="text-lg font-medium text-red-800 mb-2">{ "⚠️ Error Loading Session" }</h2>
-                                <p class="text-red-700 mb-4">{ error }</p>
+                                <h2 class="text-lg font-medium text-red-800 dark:text-red-300 mb-2">{ "⚠️ Error Loading Session" }</h2>
+                                <p class="text-red-700 dark:text-red-400 mb-4">{ error }</p>
                                 <button
                                     class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                                     onclick={refresh_session}
@@ -388,7 +388,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                             {
                                 if !*is_joined {
                                     html! {
-                                        <div class="bg-blue-50 border border-blue-200 p-4 md:p-6">
+                                        <div class="bg-blue-50 dark:bg-blue-900 border-b-2 border-blue-200 dark:border-blue-900 p-4 md:p-6">
                                             <div class="flex items-start mx-auto max-w-7xl">
                                                 <div class="flex-shrink-0">
                                                     <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -396,15 +396,15 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                                     </svg>
                                                 </div>
                                                 <div class="ml-3 flex-1">
-                                                    <h3 class="text-sm font-medium text-blue-800">{ "Join as Participant" }</h3>
-                                                    <p class="text-sm text-blue-700 mt-1 mb-4">{ "You're currently observing this session. Enter your name to become an active participant." }</p>
+                                                    <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300">{ "Join as Participant" }</h3>
+                                                    <p class="text-sm text-blue-700 dark:text-blue-400 mt-1 mb-4">{ "You're currently observing this session. Enter your name to become an active participant." }</p>
                                                     <div class="flex items-end space-x-3">
                                                         <div class="flex-1">
-                                                            <label for="participant-name" class="block text-xs font-medium text-blue-700 mb-1">{ "Your Name" }</label>
+                                                            <label for="participant-name" class="block text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">{ "Your Name" }</label>
                                                             <input
                                                                 id="participant-name"
                                                                 type="text"
-                                                                class="w-full px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                                class="w-full px-3 py-2 border-b border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                                 placeholder="Enter your name..."
                                                                 value={(*participant_name).clone()}
                                                                 oninput={{
@@ -453,7 +453,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                     }
                                 } else {
                                     html! {
-                                        <div class="bg-green-50 border border-green-200 p-4 md:p-6">
+                                        <div class="bg-green-100 dark:bg-green-900 border-b border-green-300 dark:border-green-700 p-4 md:p-6">
                                             <div class="flex items-center mx-auto max-w-7xl">
                                                 <div class="flex-shrink-0">
                                                     <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -461,7 +461,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                                     </svg>
                                                 </div>
                                                 <div class="ml-3">
-                                                    <p class="text-sm font-medium text-green-800">
+                                                    <p class="text-sm font-medium text-green-800 dark:text-green-300">
                                                         { format!("Participating as {}", participant_name.trim()) }
                                                     </p>
                                                 </div>
@@ -485,7 +485,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                 } else {
                     html! {
                         <div class="text-center py-12">
-                            <p class="text-gray-500">{ "No session data available" }</p>
+                            <p class="text-gray-500 dark:text-gray-400">{ "No session data available" }</p>
                         </div>
                     }
                 }

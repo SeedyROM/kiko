@@ -22,10 +22,10 @@ pub fn connection_indicator(props: &ConnectionIndicatorProps) -> Html {
             <span class={classes!(
                 "text-sm",
                 match &state {
-                    ConnectionState::Connected => "text-green-600",
-                    ConnectionState::Connecting => "text-yellow-600",
-                    ConnectionState::Disconnected => "text-gray-600",
-                    ConnectionState::Error(_) => "text-red-600",
+                    ConnectionState::Connected => "text-green-600 dark:text-green-400",
+                    ConnectionState::Connecting => "text-yellow-600 dark:text-yellow-400",
+                    ConnectionState::Disconnected => "text-gray-600 dark:text-gray-400",
+                    ConnectionState::Error(_) => "text-red-600 dark:text-red-400",
                 }
             )}>{
                 match &state {

@@ -16,7 +16,7 @@ pub fn copy_url_button() -> Html {
 
     html! {
         <button
-            class="mt-3 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="mt-3 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white text-xs rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             onclick={copy_url}
         >
             { "Copy URL" }
