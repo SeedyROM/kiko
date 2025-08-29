@@ -274,7 +274,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
     });
 
     html! {
-        <div>
+        <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             // Show WebSocket error if present
             {
                 if let Some(ws_err) = ws_error.as_ref() {
@@ -368,16 +368,23 @@ fn session_page_inner(props: &SessionProps) -> Html {
                     }
                 } else if let Some(error) = error_msg.as_ref() {
                     html! {
-                        <div class="bg-red-100 dark:bg-red-900 border-b border-red-300 dark:border-red-700 rounded-lg p-4 md:p-6 mx-auto max-w-7xl">
-                            <div>
-                                <h2 class="text-lg font-medium text-red-800 dark:text-red-300 mb-2">{ "⚠️ Error Loading Session" }</h2>
-                                <p class="text-red-700 dark:text-red-400 mb-4">{ error }</p>
-                                <button
-                                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    onclick={refresh_session}
-                                >
-                                    { "Retry" }
-                                </button>
+                        <div class="bg-red-50 dark:bg-red-950 border-b-2 border-red-300 dark:border-red-800 p-4 md:p-6">
+                            <div class="flex items-start mx-auto max-w-7xl">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h2 class="text-lg font-medium text-red-800 dark:text-red-300 mb-4 leading-none">{ "Error Loading Session" }</h2>
+                                    <p class="text-red-700 dark:text-red-400 mb-4">{ error }</p>
+                                    <button
+                                        class="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-rose-400"
+                                        onclick={refresh_session}
+                                    >
+                                        { "Retry" }
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     }
