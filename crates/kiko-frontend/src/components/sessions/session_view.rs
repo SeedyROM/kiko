@@ -130,8 +130,8 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         </div>
                         <div class="flex items-center space-x-3">
                             <div class="text-right">
-                                <div class="text-sm text-gray-600">{ "Time Remaining" }</div>
-                                <div class={format!("text-lg font-semibold {}",
+                                <div class="text-xs md:text-sm text-gray-600">{ "Time Remaining" }</div>
+                                <div class={format!("text-md md:text-lg font-semibold {}",
                                     if is_active { "text-green-600" } else { "text-red-600" })}>
                                     { if is_active { format_duration(remaining) } else { "Ended".to_string() } }
                                 </div>
@@ -159,9 +159,9 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                 </div>
             </div>
 
-            <div class="mx-auto max-w-7xl md:px-0 px-4 pt-6">
+            <div class="pt-6 px-4 md:px-6">
                 // Main Content Layout - 2 Column on Desktop
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 px-6">
+                <div class="mx-auto max-w-7xl flex flex-col-reverse lg:grid lg:grid-cols-4 gap-6">
                     // Left Column - Session Controls & Topic
                     <div class="lg:col-span-1 space-y-6">
 
@@ -169,7 +169,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         // Session Details - Compact
                         <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">{ "Session Details" }</h3>
-                            <div class="space-y-3 text-sm">
+                            <div class="space-y-3 text-sm flex md:block gap-x-4 justify-between">
                                 <div>
                                     <span class="text-gray-600 block mb-1">{ "Session ID" }</span>
                                     <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{ format!("{}", session.id) }</span>
@@ -402,7 +402,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                         <h4 class="text-lg font-semibold text-gray-900 mb-4">
                                                             {"Votes"}
                                                         </h4>
-                                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        <div class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] sm:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-3">
                                                             {
                                                                 session.current_points().iter().filter_map(|(participant_id, points)| {
                                                                     // Find participant by ID to get their name

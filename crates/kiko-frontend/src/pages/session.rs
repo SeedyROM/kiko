@@ -274,225 +274,223 @@ fn session_page_inner(props: &SessionProps) -> Html {
     });
 
     html! {
-        <ConfettiProvider>
-            <div>
-                // Show WebSocket error if present
-                {
-                    if let Some(ws_err) = ws_error.as_ref() {
-                        html! {
-                            <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0">
-                                        <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.19-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h3 class="text-sm font-medium text-yellow-800">{ "WebSocket Issue" }</h3>
-                                        <p class="text-sm text-yellow-700 mt-1">{ ws_err }</p>
-                                        <div class="mt-2">
-                                            <button
-                                                class="text-sm bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded-md transition-colors"
-                                                onclick={{
-                                                    let ws_connect = ws.connect.clone();
-                                                    let ws_error = ws_error.clone();
-                                                    let join_attempted = join_attempted.clone();
-                                                    Callback::from(move |_| {
-                                                        ws_error.set(None);
-                                                        join_attempted.set(false);
-                                                        ws_connect.emit(());
-                                                    })
-                                                }}
-                                            >
-                                                { "Retry Connection" }
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    } else {
-                        html! {}
-                    }
-                }
-
-                // Show connection error details for Error state
-                {
-                    if let ConnectionState::Error(err) = &ws.state {
-                        html! {
-                            <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0">
-                                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <h3 class="text-sm font-medium text-red-800">{ "Connection Failed" }</h3>
-                                        <p class="text-sm text-red-700 mt-1">{ err }</p>
-                                        <div class="mt-2">
-                                            <button
-                                                class="text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-md transition-colors"
-                                                onclick={{
-                                                    let ws_connect = ws.connect.clone();
-                                                    let join_attempted = join_attempted.clone();
-                                                    Callback::from(move |_| {
-                                                        join_attempted.set(false);
-                                                        ws_connect.emit(());
-                                                    })
-                                                }}
-                                            >
-                                                { "Retry Connection" }
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    } else {
-                        html! {}
-                    }
-                }
-
-                {
-                    if *loading {
-                        html! {
-                            <div class="flex items-center justify-center py-12">
-                                <div class="flex items-center space-x-2">
-                                    <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <div>
+            // Show WebSocket error if present
+            {
+                if let Some(ws_err) = ws_error.as_ref() {
+                    html! {
+                        <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 md:p-6">
+                            <div class="flex items-start mx-auto max-w-7xl">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.19-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                                     </svg>
-                                    <span class="text-gray-600">{ "Loading session..." }</span>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-yellow-800">{ "WebSocket Issue" }</h3>
+                                    <p class="text-sm text-yellow-700 mt-1">{ ws_err }</p>
+                                    <div class="mt-2">
+                                        <button
+                                            class="text-sm bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded-md transition-colors"
+                                            onclick={{
+                                                let ws_connect = ws.connect.clone();
+                                                let ws_error = ws_error.clone();
+                                                let join_attempted = join_attempted.clone();
+                                                Callback::from(move |_| {
+                                                    ws_error.set(None);
+                                                    join_attempted.set(false);
+                                                    ws_connect.emit(());
+                                                })
+                                            }}
+                                        >
+                                            { "Retry Connection" }
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        }
-                    } else if let Some(error) = error_msg.as_ref() {
-                        html! {
-                            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                                <div>
-                                    <h2 class="text-lg font-medium text-red-800 mb-2">{ "⚠️ Error Loading Session" }</h2>
-                                    <p class="text-red-700 mb-4">{ error }</p>
-                                    <button
-                                        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                                        onclick={refresh_session}
-                                    >
-                                        { "Retry" }
-                                    </button>
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
+
+            // Show connection error details for Error state
+            {
+                if let ConnectionState::Error(err) = &ws.state {
+                    html! {
+                        <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 md:p-6">
+                            <div class="flex items-start mx-auto max-w-7xl">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-red-800">{ "Connection Failed" }</h3>
+                                    <p class="text-sm text-red-700 mt-1">{ err }</p>
+                                    <div class="mt-2">
+                                        <button
+                                            class="text-sm bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-md transition-colors"
+                                            onclick={{
+                                                let ws_connect = ws.connect.clone();
+                                                let join_attempted = join_attempted.clone();
+                                                Callback::from(move |_| {
+                                                    join_attempted.set(false);
+                                                    ws_connect.emit(());
+                                                })
+                                            }}
+                                        >
+                                            { "Retry Connection" }
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        }
-                    } else if let Some(session) = session_data.as_ref() {
-                        html! {
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
+
+            {
+                if *loading {
+                    html! {
+                        <div class="flex items-center justify-center py-12">
+                            <div class="flex items-center space-x-2">
+                                <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="text-gray-600">{ "Loading session..." }</span>
+                            </div>
+                        </div>
+                    }
+                } else if let Some(error) = error_msg.as_ref() {
+                    html! {
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 md:p-6 mx-auto max-w-7xl">
                             <div>
-                                // Join session form (only show if not joined)
-                                {
-                                    if !*is_joined {
-                                        html! {
-                                            <div class="mb-6 bg-blue-50 border border-blue-200 p-6">
-                                                <div class="flex items-start">
-                                                    <div class="flex-shrink-0">
-                                                        <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
-                                                        </svg>
-                                                    </div>
-                                                    <div class="ml-3 flex-1">
-                                                        <h3 class="text-sm font-medium text-blue-800">{ "Join as Participant" }</h3>
-                                                        <p class="text-sm text-blue-700 mt-1 mb-4">{ "You're currently observing this session. Enter your name to become an active participant." }</p>
-                                                        <div class="flex items-end space-x-3">
-                                                            <div class="flex-1">
-                                                                <label for="participant-name" class="block text-xs font-medium text-blue-700 mb-1">{ "Your Name" }</label>
-                                                                <input
-                                                                    id="participant-name"
-                                                                    type="text"
-                                                                    class="w-full px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                                    placeholder="Enter your name..."
-                                                                    value={(*participant_name).clone()}
-                                                                    oninput={{
-                                                                        let participant_name = participant_name.clone();
-                                                                        Callback::from(move |e: InputEvent| {
-                                                                            if let Some(input) = e.target_dyn_into::<web_sys::HtmlInputElement>() {
-                                                                                participant_name.set(input.value());
-                                                                            }
-                                                                        })
-                                                                    }}
-                                                                    onkeypress={{
-                                                                        let join_session = join_session.clone();
-                                                                        Callback::from(move |e: KeyboardEvent| {
-                                                                            if e.key() == "Enter" {
-                                                                                e.prevent_default();
-                                                                                join_session.emit(());
-                                                                            }
-                                                                        })
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                class={classes!(
-                                                                    "px-4", "py-2", "rounded-md", "text-sm", "font-medium", "transition-colors",
-                                                                    if participant_name.trim().is_empty() {
-                                                                        "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                                    } else {
-                                                                        "bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                    }
-                                                                )}
-                                                                disabled={participant_name.trim().is_empty()}
-                                                                onclick={{
-                                                                    let join_session = join_session.clone();
-                                                                    Callback::from(move |_: MouseEvent| {
-                                                                        join_session.emit(());
+                                <h2 class="text-lg font-medium text-red-800 mb-2">{ "⚠️ Error Loading Session" }</h2>
+                                <p class="text-red-700 mb-4">{ error }</p>
+                                <button
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    onclick={refresh_session}
+                                >
+                                    { "Retry" }
+                                </button>
+                            </div>
+                        </div>
+                    }
+                } else if let Some(session) = session_data.as_ref() {
+                    html! {
+                        <div>
+                            // Join session form (only show if not joined)
+                            {
+                                if !*is_joined {
+                                    html! {
+                                        <div class="bg-blue-50 border border-blue-200 p-4 md:p-6">
+                                            <div class="flex items-start mx-auto max-w-7xl">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <div class="ml-3 flex-1">
+                                                    <h3 class="text-sm font-medium text-blue-800">{ "Join as Participant" }</h3>
+                                                    <p class="text-sm text-blue-700 mt-1 mb-4">{ "You're currently observing this session. Enter your name to become an active participant." }</p>
+                                                    <div class="flex items-end space-x-3">
+                                                        <div class="flex-1">
+                                                            <label for="participant-name" class="block text-xs font-medium text-blue-700 mb-1">{ "Your Name" }</label>
+                                                            <input
+                                                                id="participant-name"
+                                                                type="text"
+                                                                class="w-full px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                                placeholder="Enter your name..."
+                                                                value={(*participant_name).clone()}
+                                                                oninput={{
+                                                                    let participant_name = participant_name.clone();
+                                                                    Callback::from(move |e: InputEvent| {
+                                                                        if let Some(input) = e.target_dyn_into::<web_sys::HtmlInputElement>() {
+                                                                            participant_name.set(input.value());
+                                                                        }
                                                                     })
                                                                 }}
-                                                            >
-                                                                { "Join as Participant" }
-                                                            </button>
+                                                                onkeypress={{
+                                                                    let join_session = join_session.clone();
+                                                                    Callback::from(move |e: KeyboardEvent| {
+                                                                        if e.key() == "Enter" {
+                                                                            e.prevent_default();
+                                                                            join_session.emit(());
+                                                                        }
+                                                                    })
+                                                                }}
+                                                            />
                                                         </div>
+                                                        <button
+                                                            type="button"
+                                                            class={classes!(
+                                                                "px-4", "py-2", "rounded-md", "text-sm", "font-medium", "transition-colors",
+                                                                if participant_name.trim().is_empty() {
+                                                                    "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                                } else {
+                                                                    "bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                }
+                                                            )}
+                                                            disabled={participant_name.trim().is_empty()}
+                                                            onclick={{
+                                                                let join_session = join_session.clone();
+                                                                Callback::from(move |_: MouseEvent| {
+                                                                    join_session.emit(());
+                                                                })
+                                                            }}
+                                                        >
+                                                            { "Join as Participant" }
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
-                                        }
-                                    } else {
-                                        html! {
-                                            <div class="mb-6 bg-green-50 border border-green-200 p-4">
-                                                <div class="flex items-center">
-                                                    <div class="flex-shrink-0">
-                                                        <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.236 4.53L7.53 10.347a.75.75 0 00-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-                                                        </svg>
-                                                    </div>
-                                                    <div class="ml-3">
-                                                        <p class="text-sm font-medium text-green-800">
-                                                            { format!("Participating as {}", participant_name.trim()) }
-                                                        </p>
-                                                    </div>
+                                        </div>
+                                    }
+                                } else {
+                                    html! {
+                                        <div class="bg-green-50 border border-green-200 p-4 md:p-6">
+                                            <div class="flex items-center mx-auto max-w-7xl">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.236 4.53L7.53 10.347a.75.75 0 00-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-green-800">
+                                                        { format!("Participating as {}", participant_name.trim()) }
+                                                    </p>
                                                 </div>
                                             </div>
-                                        }
+                                        </div>
                                     }
                                 }
+                            }
 
-                                <SessionView
-                                    session={session.clone()}
-                                    on_refresh={refresh_session.clone()}
-                                    on_send_message={Some(ws.send.clone())}
-                                    participant_name={if *is_joined { Some((*participant_name).clone()) } else { None }}
-                                    participant_id={if *is_joined { (*participant_id).clone() } else { None }}
-                                    is_joined={*is_joined}
-                                    ws_state={ws.state.clone()}
-                                />
-                            </div>
-                        }
-                    } else {
-                        html! {
-                            <div class="text-center py-12">
-                                <p class="text-gray-500">{ "No session data available" }</p>
-                            </div>
-                        }
+                            <SessionView
+                                session={session.clone()}
+                                on_refresh={refresh_session.clone()}
+                                on_send_message={Some(ws.send.clone())}
+                                participant_name={if *is_joined { Some((*participant_name).clone()) } else { None }}
+                                participant_id={if *is_joined { (*participant_id).clone() } else { None }}
+                                is_joined={*is_joined}
+                                ws_state={ws.state.clone()}
+                            />
+                        </div>
+                    }
+                } else {
+                    html! {
+                        <div class="text-center py-12">
+                            <p class="text-gray-500">{ "No session data available" }</p>
+                        </div>
                     }
                 }
-            </div>
-        </ConfettiProvider>
+            }
+        </div>
     }
 }
 
