@@ -1,8 +1,14 @@
 //! Shared error types and utilities for the kiko project.
+
+#[cfg(not(target_arch = "wasm32"))]
 pub use color_eyre::Report;
+
+#[cfg(target_arch = "wasm32")]
+pub type Report = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum LogError {
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("Failed to install color_eyre")]
     ColorEyre(#[from] color_eyre::Report),
     #[error("Failed to install tracing-subscriber")]

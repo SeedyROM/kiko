@@ -438,7 +438,7 @@ fi
 # Start frontend
 if [ "$RELEASE_MODE" = true ]; then
     echo "🎨 Starting frontend server (release)..."
-    (trunk serve --release 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}') &
+    (trunk serve --release --no-default-features 2>&1 | awk -v prefix="${CLIENT_COLOR}[client]${NC}" '{print prefix " " $0; fflush()}') &
     FRONTEND_PID=$!
 else
     echo "🎨 Starting frontend server (dev)..."

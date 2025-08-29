@@ -8,30 +8,35 @@ use crate::errors::LogError;
 
 #[cfg(target_arch = "wasm32")]
 /// Setup the logging system for the application for WASM.
-/// This function will install the [`tracing-web`] logging system.
 pub fn setup() -> Result<(), LogError> {
-    use tracing_subscriber::EnvFilter;
-    use tracing_subscriber::fmt::format::{FmtSpan, Pretty};
-    use tracing_subscriber::fmt::time::UtcTime;
-    use tracing_subscriber::layer::SubscriberExt;
-    use tracing_subscriber::util::SubscriberInitExt;
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("debug"))
-        .add_directive("yew=off".parse().unwrap());
+    #[cfg(all(debug_assertions, feature = "dev-logging"))]
+    {
+        use tracing_subscriber::EnvFilter;
+        use tracing_subscriber::fmt::format::{FmtSpan, Pretty};
+        use tracing_subscriber::fmt::time::UtcTime;
+        use tracing_subscriber::layer::SubscriberExt;
+        use tracing_subscriber::util::SubscriberInitExt;
 
-    let fmt_layer = tracing_subscriber::fmt::layer()
-        .with_ansi(false)
-        .with_timer(UtcTime::rfc_3339())
-        .with_writer(tracing_web::MakeConsoleWriter)
-        .with_span_events(FmtSpan::ACTIVE);
-    let perf_layer = tracing_web::performance_layer().with_details_from_fields(Pretty::default());
+        let filter = EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("debug"))
+            .add_directive("yew=off".parse().unwrap());
 
-    tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt_layer)
-        .with(perf_layer)
-        .init();
+        let fmt_layer = tracing_subscriber::fmt::layer()
+            .with_ansi(false)
+            .with_timer(UtcTime::rfc_3339())
+            .with_writer(tracing_web::MakeConsoleWriter)
+            .with_span_events(FmtSpan::ACTIVE);
+        let perf_layer =
+            tracing_web::performance_layer().with_details_from_fields(Pretty::default());
+
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(fmt_layer)
+            .with(perf_layer)
+            .init();
+    }
 
     Ok(())
 }
