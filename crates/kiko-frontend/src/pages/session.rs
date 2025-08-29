@@ -275,37 +275,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
 
     html! {
         <ConfettiProvider>
-            <div class="p-8 max-w-4xl mx-auto">
-                <div class="mb-6">
-                    <div class="flex flex-col sm:flex-row gap-y-4 justify-between items-center">
-                        <h1 class="text-3xl font-bold text-gray-900">{ "Session Details" }</h1>
-                        <div class="flex items-center space-x-2">
-                            <div class={classes!("w-3", "h-3", "rounded-full", match ws.state {
-                                ConnectionState::Connected => "bg-green-500",
-                                ConnectionState::Connecting => "bg-yellow-500",
-                                ConnectionState::Disconnected => "bg-gray-500",
-                                ConnectionState::Error(_) => "bg-red-500",
-                            })}></div>
-                            <span class={classes!(
-                                "text-sm",
-                                match &ws.state {
-                                    ConnectionState::Connected => "text-green-600",
-                                    ConnectionState::Connecting => "text-yellow-600",
-                                    ConnectionState::Disconnected => "text-gray-600",
-                                    ConnectionState::Error(_) => "text-red-600",
-                                }
-                            )}>{
-                                match &ws.state {
-                                    ConnectionState::Connected => "Connected",
-                                    ConnectionState::Connecting => "Connecting...",
-                                    ConnectionState::Disconnected => "Disconnected",
-                                    ConnectionState::Error(_) => "Connection Error",
-                                }
-                            }</span>
-                        </div>
-                    </div>
-                </div>
-
+            <div>
                 // Show WebSocket error if present
                 {
                     if let Some(ws_err) = ws_error.as_ref() {
@@ -419,7 +389,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                 {
                                     if !*is_joined {
                                         html! {
-                                            <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                                            <div class="mb-6 bg-blue-50 border border-blue-200 p-6">
                                                 <div class="flex items-start">
                                                     <div class="flex-shrink-0">
                                                         <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -484,7 +454,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                         }
                                     } else {
                                         html! {
-                                            <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <div class="mb-6 bg-green-50 border border-green-200 p-4">
                                                 <div class="flex items-center">
                                                     <div class="flex-shrink-0">
                                                         <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -509,6 +479,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                     participant_name={if *is_joined { Some((*participant_name).clone()) } else { None }}
                                     participant_id={if *is_joined { (*participant_id).clone() } else { None }}
                                     is_joined={*is_joined}
+                                    ws_state={ws.state.clone()}
                                 />
                             </div>
                         }
