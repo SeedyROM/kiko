@@ -169,22 +169,22 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         // Session Details - Compact
                         <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                             <h3 class="text-lg font-semibold text-gray-900 mb-4">{ "Session Details" }</h3>
-                            <div class="space-y-3 text-sm flex md:block gap-x-4 justify-between">
+                            <div class="space-y-3 text-sm flex lg:block gap-x-4 justify-between">
                                 <div>
-                                    <span class="text-gray-600 block mb-1">{ "Session ID" }</span>
-                                    <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{ format!("{}", session.id) }</span>
+                                    <div class="text-gray-600 block mb-1">{ "Session ID" }</div>
+                                    <div class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{ format!("{}", session.id) }</div>
                                 </div>
                                 <div>
-                                    <span class="text-gray-600 block mb-1">{ "Started" }</span>
-                                    <span class="text-xs">{ format_timestamp(session.started()) }</span>
+                                    <div class="text-gray-600 block mb-1">{ "Started" }</div>
+                                    <div class="text-xs">{ format_timestamp(session.started()) }</div>
                                 </div>
                                 <div>
-                                    <span class="text-gray-600 block mb-1">{ "Duration" }</span>
-                                    <span>{ format_duration(session.duration()) }</span>
+                                    <div class="text-gray-600 block mb-1">{ "Duration" }</div>
+                                    <div>{ format_duration(session.duration()) }</div>
                                 </div>
                                 <div>
-                                    <span class="text-gray-600 block mb-1">{ "Participants" }</span>
-                                    <span class="font-semibold">{ session.participants().len() }</span>
+                                    <div class="text-gray-600 block mb-1">{ "Participants" }</div>
+                                    <div class="font-semibold text-right lg:text-left">{ session.participants().len() }</div>
                                 </div>
                             </div>
                         </div>
@@ -402,20 +402,20 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                         <h4 class="text-lg font-semibold text-gray-900 mb-4">
                                                             {"Votes"}
                                                         </h4>
-                                                        <div class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] sm:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-3">
+                                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                                             {
                                                                 session.current_points().iter().filter_map(|(participant_id, points)| {
                                                                     // Find participant by ID to get their name
                                                                     session.participants().iter().find(|p| p.id() == participant_id).map(|participant| {
                                                                         html! {
-                                                                            <div key={participant_id.to_string()} class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                                                            <div key={participant_id.to_string()} class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                                                                 <div class="flex items-center space-x-3">
-                                                                                    <div class="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                                    <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
                                                                                         <span class="text-sm font-medium text-white">
                                                                                             { participant.name().chars().next().unwrap_or('?').to_uppercase().to_string() }
                                                                                         </span>
                                                                                     </div>
-                                                                                    <span class="text-sm font-medium">{ participant.name() }</span>
+                                                                                    <span class="text-sm font-medium text-gray-900">{ participant.name() }</span>
                                                                                 </div>
                                                                                 <span class={format!(
                                                                                     "px-3 py-1 rounded-full text-sm font-bold {}",
