@@ -33,6 +33,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
     let ws_state = &props.ws_state;
     let topic_input = use_state(String::new);
     let selected_points = use_state(|| None::<u32>);
+    let show_topic_input = use_state(|| false);
 
     // Sync selected_points with session state when points are cleared
     use_effect_with(
@@ -283,48 +284,99 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                 })
                                             };
 
-                                            html! {
-                                                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
-                                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
-                                                    {
-                                                        if !session.current_topic().is_empty() {
-                                                            html! {
-                                                                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-4">
-                                                                    <p class="text-blue-900 dark:text-blue-300 font-medium">{ session.current_topic() }</p>
-                                                                </div>
-                                                            }
-                                                        } else {
-                                                            html! {
-                                                                <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-4">
-                                                                    <p class="text-gray-500 dark:text-gray-400 italic">{ "No topic set yet" }</p>
-                                                                </div>
+                                            {
+                                                let toggle_topic_input = {
+                                                    let show_topic_input = show_topic_input.clone();
+                                                    Callback::from(move |_: MouseEvent| {
+                                                        show_topic_input.set(!*show_topic_input);
+                                                    })
+                                                };
+
+                                                html! {
+                                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
+                                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
+                                                        {
+                                                            if !session.current_topic().is_empty() {
+                                                                html! {
+                                                                    <div class="bg-blue-50 dark:bg-blue-900/20 flex justify-between border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-4 relative group">
+                                                                        <p class="text-blue-900 dark:text-blue-300 font-medium pr-8">{ session.current_topic() }</p>
+                                                                        <button
+                                                                            class="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-0 group-hover:opacity-100"
+                                                                            onclick={toggle_topic_input}
+                                                                            title="Edit topic"
+                                                                        >
+                                                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                }
+                                                            } else {
+                                                                html! {
+                                                                    <div class="bg-gray-50 dark:bg-gray-700 flex justify-between border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-4 relative group">
+                                                                        <p class="text-gray-500 dark:text-gray-400 italic pr-8">{ "No topic set yet" }</p>
+                                                                        <button
+                                                                            class="p-1.5 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 opacity-0 group-hover:opacity-100"
+                                                                            onclick={toggle_topic_input}
+                                                                            title="Edit topic"
+                                                                        >
+                                                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </div>
+                                                                }
                                                             }
                                                         }
-                                                    }
-                                                    <div class="flex space-x-2">
-                                                        <input
-                                                            type="text"
-                                                            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                            placeholder="Enter story to estimate..."
-                                                            value={(*topic_input).clone()}
-                                                            oninput={{
-                                                                let topic_input = topic_input.clone();
-                                                                Callback::from(move |e: InputEvent| {
-                                                                    if let Some(input) = e.target_dyn_into::<web_sys::HtmlInputElement>() {
-                                                                        topic_input.set(input.value());
-                                                                    }
-                                                                })
-                                                            }}
-                                                            onkeypress={on_topic_keypress}
-                                                        />
-                                                        <button
-                                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                                                            onclick={on_topic_change}
-                                                        >
-                                                            { "Set" }
-                                                        </button>
+                                                        {
+                                                            if *show_topic_input {
+                                                                html! {
+                                                                    <div class="flex space-x-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                                            placeholder="Enter story to estimate..."
+                                                                            value={(*topic_input).clone()}
+                                                                            oninput={{
+                                                                                let topic_input = topic_input.clone();
+                                                                                Callback::from(move |e: InputEvent| {
+                                                                                    if let Some(input) = e.target_dyn_into::<web_sys::HtmlInputElement>() {
+                                                                                        topic_input.set(input.value());
+                                                                                    }
+                                                                                })
+                                                                            }}
+                                                                            onkeypress={{
+                                                                                let on_topic_keypress = on_topic_keypress.clone();
+                                                                                let show_topic_input = show_topic_input.clone();
+                                                                                Callback::from(move |e: KeyboardEvent| {
+                                                                                    if e.key() == "Enter" {
+                                                                                        on_topic_keypress.emit(e);
+                                                                                        show_topic_input.set(false); // Hide input after setting topic
+                                                                                    }
+                                                                                })
+                                                                            }}
+                                                                        />
+                                                                        <button
+                                                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                                                                            onclick={{
+                                                                                let on_topic_change = on_topic_change.clone();
+                                                                                let show_topic_input = show_topic_input.clone();
+                                                                                Callback::from(move |e: MouseEvent| {
+                                                                                    on_topic_change.emit(e);
+                                                                                    show_topic_input.set(false); // Hide input after setting topic
+                                                                                })
+                                                                            }}
+                                                                        >
+                                                                            { "Set" }
+                                                                        </button>
+                                                                    </div>
+                                                                }
+                                                            } else {
+                                                                html! {}
+                                                            }
+                                                        }
                                                     </div>
-                                                </div>
+                                                }
                                             }
                                         } else {
                                             html! {}
