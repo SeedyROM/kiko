@@ -1,3 +1,4 @@
+use gloo_events::EventListener;
 use gloo_timers::callback::Interval;
 use js_sys::Math;
 use wasm_bindgen::JsCast;
@@ -155,6 +156,21 @@ pub fn confetti(props: &ConfettiProps) -> Html {
     let canvas_ref = use_node_ref();
     let particles = use_mut_ref(Vec::<ConfettiParticle>::new);
     let interval_handle = use_mut_ref(|| None::<Interval>);
+    let resize_listener = use_mut_ref(|| None::<EventListener>);
+
+    let update_canvas_size = {
+        let canvas_ref = canvas_ref.clone();
+        Callback::from(move |_| {
+            if let Some(canvas) = canvas_ref.cast::<HtmlCanvasElement>() {
+                let window = web_sys::window().unwrap();
+                let width = window.inner_width().unwrap().as_f64().unwrap() as u32;
+                let height = window.inner_height().unwrap().as_f64().unwrap() as u32;
+
+                canvas.set_width(width);
+                canvas.set_height(height);
+            }
+        })
+    };
 
     let trigger_confetti = {
         let particles = particles.clone();
@@ -228,11 +244,35 @@ pub fn confetti(props: &ConfettiProps) -> Html {
         });
     }
 
+    {
+        let resize_listener = resize_listener.clone();
+        let update_canvas_size = update_canvas_size.clone();
+
+        use_effect_with((), move |_| {
+            if let Some(window) = web_sys::window() {
+                // Set initial canvas size
+                update_canvas_size.emit(());
+
+                // Set up resize listener
+                let listener = {
+                    let update_canvas_size = update_canvas_size.clone();
+                    EventListener::new(&window, "resize", move |_| {
+                        update_canvas_size.emit(());
+                    })
+                };
+
+                *resize_listener.borrow_mut() = Some(listener);
+            }
+
+            move || {
+                *resize_listener.borrow_mut() = None;
+            }
+        });
+    }
+
     html! {
         <canvas
             ref={canvas_ref}
-            width="1920"
-            height="1080"
             style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 9999; width: 100%; height: 100%;"
         />
     }
