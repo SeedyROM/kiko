@@ -3,17 +3,89 @@ use std::time::Duration;
 use web_sys::{InputEvent, KeyboardEvent, MouseEvent};
 use yew::prelude::*;
 
-use kiko::data::{PointSession, Session, SessionMessage};
+use kiko::data::{Participant, PointSession, Session, SessionMessage};
 use kiko::serde_json;
 
 use crate::components::{ConnectionIndicator, CopyUrlButton};
 use crate::hooks::ConnectionState;
+
+// CSS class constants
+const CARD_CLASSES: &str = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm";
+const TEXT_PRIMARY: &str = "text-gray-900 dark:text-gray-100";
+const TEXT_SECONDARY: &str = "text-gray-600 dark:text-gray-400";
+const GRID_LAYOUT: &str = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3";
 
 fn is_point_selected(selected_points: Option<u32>, points: u32) -> bool {
     selected_points
         == Some(points)
             .filter(|&p| p != 0)
             .or(if points == 0 { Some(0) } else { None })
+}
+
+// Utility function for sending WebSocket messages
+fn send_session_message(sender: &Option<Callback<String>>, message: SessionMessage) -> bool {
+    if let Some(sender) = sender {
+        if let Ok(message_text) = serde_json::to_string(&message) {
+            sender.emit(message_text);
+            return true;
+        }
+    }
+    false
+}
+
+// Participant Avatar Component
+#[derive(Properties, PartialEq)]
+struct ParticipantAvatarProps {
+    participant: Participant,
+}
+
+#[function_component(ParticipantAvatar)]
+fn participant_avatar(props: &ParticipantAvatarProps) -> Html {
+    let initial = props
+        .participant
+        .name()
+        .chars()
+        .next()
+        .unwrap_or('?')
+        .to_uppercase()
+        .to_string();
+
+    html! {
+        <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
+            <span class="text-sm font-medium text-white">
+                { initial }
+            </span>
+        </div>
+    }
+}
+
+// Edit Button Component
+#[derive(Properties, PartialEq)]
+struct EditButtonProps {
+    onclick: Callback<MouseEvent>,
+    #[prop_or("blue".to_string())]
+    color: String,
+}
+
+#[function_component(EditButton)]
+fn edit_button(props: &EditButtonProps) -> Html {
+    let button_classes = if props.color == "blue" {
+        "p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-0 group-hover:opacity-100"
+    } else {
+        "p-1.5 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 opacity-0 group-hover:opacity-100"
+    };
+
+    html! {
+        <button
+            class={button_classes}
+            onclick={props.onclick.clone()}
+            title="Edit topic"
+        >
+            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+        </button>
+    }
 }
 
 #[derive(Properties, PartialEq)]
@@ -168,24 +240,24 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
 
                         // Session Details - Compact
-                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Session Details" }</h3>
+                        <div class={CARD_CLASSES}>
+                            <h3 class={classes!("text-lg", "font-semibold", "mb-4", TEXT_PRIMARY)}>{ "Session Details" }</h3>
                             <div class="space-y-3 text-sm flex lg:block gap-x-4 justify-between">
                                 <div>
-                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Session ID" }</div>
-                                    <div class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 px-2 py-1 rounded">{ format!("{}", session.id) }</div>
+                                    <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Session ID" }</div>
+                                    <div class={classes!("font-mono", "text-xs", "bg-gray-100", "dark:bg-gray-700", "px-2", "py-1", "rounded", TEXT_PRIMARY)}>{ format!("{}", session.id) }</div>
                                 </div>
                                 <div>
-                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Started" }</div>
-                                    <div class="text-xs text-gray-900 dark:text-gray-100">{ format_timestamp(session.started()) }</div>
+                                    <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Started" }</div>
+                                    <div class={classes!("text-xs", TEXT_PRIMARY)}>{ format_timestamp(session.started()) }</div>
                                 </div>
                                 <div>
-                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Duration" }</div>
-                                    <div class="text-gray-900 dark:text-gray-100">{ format_duration(session.duration()) }</div>
+                                    <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Duration" }</div>
+                                    <div class={TEXT_PRIMARY}>{ format_duration(session.duration()) }</div>
                                 </div>
                                 <div>
-                                    <div class="text-gray-600 dark:text-gray-400 block mb-1">{ "Participants" }</div>
-                                    <div class="font-semibold text-right lg:text-left text-gray-900 dark:text-gray-100">{ session.participants().len() }</div>
+                                    <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Participants" }</div>
+                                    <div class={classes!("font-semibold", "text-right", "lg:text-left", TEXT_PRIMARY)}>{ session.participants().len() }</div>
                                 </div>
                             </div>
                         </div>
@@ -268,12 +340,9 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                     let on_send_message = props.on_send_message.clone();
                                                     let topic_input = topic_input.clone();
                                                     Callback::from(move |_: MouseEvent| {
-                                                        if let Some(sender) = &on_send_message {
-                                                            let topic_message = SessionMessage::SetTopic((*topic_input).clone());
-                                                            if let Ok(message_text) = serde_json::to_string(&topic_message) {
-                                                                sender.emit(message_text);
-                                                                topic_input.set(String::new()); // Clear input after sending
-                                                            }
+                                                        let topic_message = SessionMessage::SetTopic((*topic_input).clone());
+                                                        if send_session_message(&on_send_message, topic_message) {
+                                                            topic_input.set(String::new());
                                                         }
                                                     })
                                                 };
@@ -283,12 +352,9 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                     let topic_input = topic_input.clone();
                                                     Callback::from(move |e: KeyboardEvent| {
                                                         if e.key() == "Enter" {
-                                                            if let Some(sender) = &on_send_message {
-                                                                let topic_message = SessionMessage::SetTopic((*topic_input).clone());
-                                                                if let Ok(message_text) = serde_json::to_string(&topic_message) {
-                                                                    sender.emit(message_text);
-                                                                    topic_input.set(String::new()); // Clear input after sending
-                                                                }
+                                                            let topic_message = SessionMessage::SetTopic((*topic_input).clone());
+                                                            if send_session_message(&on_send_message, topic_message) {
+                                                                topic_input.set(String::new());
                                                             }
                                                         }
                                                     })
@@ -377,34 +443,22 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                     let on_send_message = props.on_send_message.clone();
                                     let selected_points = selected_points.clone();
                                     Callback::from(move |_: MouseEvent| {
-                                        // Clear local state immediately
                                         selected_points.set(None);
-
-                                        if let Some(sender) = &on_send_message {
-                                            let clear_message = SessionMessage::ClearPoints;
-                                            if let Ok(message_text) = serde_json::to_string(&clear_message) {
-                                                sender.emit(message_text);
-                                            }
-                                        }
+                                        send_session_message(&on_send_message, SessionMessage::ClearPoints);
                                     })
                                 };
 
                                 let on_toggle_hide_points = {
                                     let on_send_message = props.on_send_message.clone();
                                     Callback::from(move |_: MouseEvent| {
-                                        if let Some(sender) = &on_send_message {
-                                            let toggle_message = SessionMessage::ToggleHidePoints;
-                                            if let Ok(message_text) = serde_json::to_string(&toggle_message) {
-                                                sender.emit(message_text);
-                                            }
-                                        }
+                                        send_session_message(&on_send_message, SessionMessage::ToggleHidePoints);
                                     })
                                 };
 
                                 html! {
-                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+                                    <div class={CARD_CLASSES}>
                                         <div class="flex items-center justify-between mb-6">
-                                            <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                            <h3 class={classes!("text-xl", "font-semibold", TEXT_PRIMARY)}>
                                                 { if props.is_joined { "Choose Your Estimate" } else { "Voting" } }
                                             </h3>
                                             {
@@ -498,7 +552,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                                 }
                                                             }
                                                         </h4>
-                                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        <div class="space-y-3">
                                                             {
                                                                 session.current_points().iter().filter_map(|(participant_id, points)| {
                                                                     // Find participant by ID to get their name
@@ -573,7 +627,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                 }
                                             } else {
                                                 html! {
-                                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                    <div class={GRID_LAYOUT}>
                                                         {
                                                             session.participants().iter().map(|participant| {
                                                                 html! {
