@@ -585,7 +585,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                                                     "•••".to_string()
                                                                                 } else {
                                                                                     match participant_points {
-                                                                                        Some(0) => "?".to_string(),
+                                                                                        Some(0) => "🤷‍♀️".to_string(),
                                                                                         Some(p) => p.to_string(),
                                                                                         None => "?".to_string(),
                                                                                     }
