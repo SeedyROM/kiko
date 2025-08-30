@@ -13,7 +13,7 @@ use crate::hooks::ConnectionState;
 const CARD_CLASSES: &str = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm";
 const TEXT_PRIMARY: &str = "text-gray-900 dark:text-gray-100";
 const TEXT_SECONDARY: &str = "text-gray-600 dark:text-gray-400";
-const GRID_LAYOUT: &str = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3";
+// const GRID_LAYOUT: &str = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3";
 
 fn is_point_selected(selected_points: Option<u32>, points: u32) -> bool {
     selected_points
@@ -249,7 +249,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                 </div>
                                 <div>
                                     <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Started" }</div>
-                                    <div class={classes!("text-xs", TEXT_PRIMARY)}>{ format_timestamp(session.started()) }</div>
+                                    <div class={classes!(TEXT_PRIMARY)}>{ format_timestamp(session.started()) }</div>
                                 </div>
                                 <div>
                                     <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Duration" }</div>
@@ -260,156 +260,152 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                     <div class={classes!("font-semibold", "text-right", "lg:text-left", TEXT_PRIMARY)}>{ session.participants().len() }</div>
                                 </div>
                             </div>
+                            <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+                                <CopyUrlButton />
+                            </div>
                         </div>
                     </div>
 
                     // Right Column - Participants & Voting
                     <div class="lg:col-span-3 space-y-6">
                         // Topic Section - Always show if there are participants
-                        {
-                            if !session.participants().is_empty() {
-                                html! {
-                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
-                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
-                                        {
-                                            if !session.current_topic().is_empty() {
-                                                html! {
-                                                    <div class={format!("bg-blue-50 dark:bg-blue-900/20 {} border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-4 relative group",
-                                                        if props.is_joined { "flex justify-between" } else { "" })}>
-                                                        <p class="text-blue-900 dark:text-blue-300 font-medium pr-8">{ session.current_topic() }</p>
-                                                        {
-                                                            if props.is_joined {
-                                                                let toggle_topic_input = {
-                                                                    let show_topic_input = show_topic_input.clone();
-                                                                    Callback::from(move |_: MouseEvent| {
-                                                                        show_topic_input.set(!*show_topic_input);
-                                                                    })
-                                                                };
-                                                                html! {
-                                                                    <button
-                                                                        class="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-0 group-hover:opacity-100"
-                                                                        onclick={toggle_topic_input}
-                                                                        title="Edit topic"
-                                                                    >
-                                                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                        </svg>
-                                                                    </button>
-                                                                }
-                                                            } else {
-                                                                html! {}
-                                                            }
-                                                        }
-                                                    </div>
-                                                }
-                                            } else {
-                                                html! {
-                                                    <div class={format!("bg-gray-50 dark:bg-gray-700 {} border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-4 relative group",
-                                                        if props.is_joined { "flex justify-between" } else { "" })}>
-                                                        <p class="text-gray-500 dark:text-gray-400 italic pr-8">{ "No topic set yet" }</p>
-                                                        {
-                                                            if props.is_joined {
-                                                                let toggle_topic_input = {
-                                                                    let show_topic_input = show_topic_input.clone();
-                                                                    Callback::from(move |_: MouseEvent| {
-                                                                        show_topic_input.set(!*show_topic_input);
-                                                                    })
-                                                                };
-                                                                html! {
-                                                                    <button
-                                                                        class="p-1.5 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 opacity-0 group-hover:opacity-100"
-                                                                        onclick={toggle_topic_input}
-                                                                        title="Edit topic"
-                                                                    >
-                                                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                        </svg>
-                                                                    </button>
-                                                                }
-                                                            } else {
-                                                                html! {}
-                                                            }
-                                                        }
-                                                    </div>
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
+                            {
+                                if !session.current_topic().is_empty() {
+                                    html! {
+                                        <div class={format!("bg-blue-50 dark:bg-blue-900/20 {} border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-4 relative group",
+                                            if props.is_joined { "flex justify-between" } else { "" })}>
+                                            <p class="text-blue-900 dark:text-blue-300 font-medium pr-8">{ session.current_topic() }</p>
+                                            {
+                                                if props.is_joined {
+                                                    let toggle_topic_input = {
+                                                        let show_topic_input = show_topic_input.clone();
+                                                        Callback::from(move |_: MouseEvent| {
+                                                            show_topic_input.set(!*show_topic_input);
+                                                        })
+                                                    };
+                                                    html! {
+                                                        <button
+                                                            class="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-0 group-hover:opacity-100"
+                                                            onclick={toggle_topic_input}
+                                                            title="Edit topic"
+                                                        >
+                                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                        </button>
+                                                    }
+                                                } else {
+                                                    html! {}
                                                 }
                                             }
-                                        }
-                                        {
-                                            if props.is_joined && *show_topic_input {
-                                                let on_topic_change = {
-                                                    let on_send_message = props.on_send_message.clone();
+                                        </div>
+                                    }
+                                } else {
+                                    html! {
+                                        <div class={format!("bg-gray-50 dark:bg-gray-700 {} border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-4 relative group",
+                                            if props.is_joined { "flex justify-between" } else { "" })}>
+                                            <p class="text-gray-500 dark:text-gray-400 italic pr-8">{ "No topic set yet" }</p>
+                                            {
+                                                if props.is_joined {
+                                                    let toggle_topic_input = {
+                                                        let show_topic_input = show_topic_input.clone();
+                                                        Callback::from(move |_: MouseEvent| {
+                                                            show_topic_input.set(!*show_topic_input);
+                                                        })
+                                                    };
+                                                    html! {
+                                                        <button
+                                                            class="p-1.5 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 opacity-0 group-hover:opacity-100"
+                                                            onclick={toggle_topic_input}
+                                                            title="Edit topic"
+                                                        >
+                                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                            </svg>
+                                                        </button>
+                                                    }
+                                                } else {
+                                                    html! {}
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                }
+                            }
+                            {
+                                if props.is_joined && *show_topic_input {
+                                    let on_topic_change = {
+                                        let on_send_message = props.on_send_message.clone();
+                                        let topic_input = topic_input.clone();
+                                        Callback::from(move |_: MouseEvent| {
+                                            let topic_message = SessionMessage::SetTopic((*topic_input).clone());
+                                            if send_session_message(&on_send_message, topic_message) {
+                                                topic_input.set(String::new());
+                                            }
+                                        })
+                                    };
+
+                                    let on_topic_keypress = {
+                                        let on_send_message = props.on_send_message.clone();
+                                        let topic_input = topic_input.clone();
+                                        Callback::from(move |e: KeyboardEvent| {
+                                            if e.key() == "Enter" {
+                                                let topic_message = SessionMessage::SetTopic((*topic_input).clone());
+                                                if send_session_message(&on_send_message, topic_message) {
+                                                    topic_input.set(String::new());
+                                                }
+                                            }
+                                        })
+                                    };
+                                    html! {
+                                        <div class="flex space-x-2">
+                                            <input
+                                                type="text"
+                                                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="Enter story to estimate..."
+                                                value={(*topic_input).clone()}
+                                                oninput={{
                                                     let topic_input = topic_input.clone();
-                                                    Callback::from(move |_: MouseEvent| {
-                                                        let topic_message = SessionMessage::SetTopic((*topic_input).clone());
-                                                        if send_session_message(&on_send_message, topic_message) {
-                                                            topic_input.set(String::new());
+                                                    Callback::from(move |e: InputEvent| {
+                                                        if let Some(input) = e.target_dyn_into::<web_sys::HtmlInputElement>() {
+                                                            topic_input.set(input.value());
                                                         }
                                                     })
-                                                };
-
-                                                let on_topic_keypress = {
-                                                    let on_send_message = props.on_send_message.clone();
-                                                    let topic_input = topic_input.clone();
+                                                }}
+                                                onkeypress={{
+                                                    let on_topic_keypress = on_topic_keypress.clone();
+                                                    let show_topic_input = show_topic_input.clone();
                                                     Callback::from(move |e: KeyboardEvent| {
                                                         if e.key() == "Enter" {
-                                                            let topic_message = SessionMessage::SetTopic((*topic_input).clone());
-                                                            if send_session_message(&on_send_message, topic_message) {
-                                                                topic_input.set(String::new());
-                                                            }
+                                                            on_topic_keypress.emit(e);
+                                                            show_topic_input.set(false); // Hide input after setting topic
                                                         }
                                                     })
-                                                };
-                                                html! {
-                                                    <div class="flex space-x-2">
-                                                        <input
-                                                            type="text"
-                                                            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                            placeholder="Enter story to estimate..."
-                                                            value={(*topic_input).clone()}
-                                                            oninput={{
-                                                                let topic_input = topic_input.clone();
-                                                                Callback::from(move |e: InputEvent| {
-                                                                    if let Some(input) = e.target_dyn_into::<web_sys::HtmlInputElement>() {
-                                                                        topic_input.set(input.value());
-                                                                    }
-                                                                })
-                                                            }}
-                                                            onkeypress={{
-                                                                let on_topic_keypress = on_topic_keypress.clone();
-                                                                let show_topic_input = show_topic_input.clone();
-                                                                Callback::from(move |e: KeyboardEvent| {
-                                                                    if e.key() == "Enter" {
-                                                                        on_topic_keypress.emit(e);
-                                                                        show_topic_input.set(false); // Hide input after setting topic
-                                                                    }
-                                                                })
-                                                            }}
-                                                        />
-                                                        <button
-                                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                                                            onclick={{
-                                                                let on_topic_change = on_topic_change.clone();
-                                                                let show_topic_input = show_topic_input.clone();
-                                                                Callback::from(move |e: MouseEvent| {
-                                                                    on_topic_change.emit(e);
-                                                                    show_topic_input.set(false); // Hide input after setting topic
-                                                                })
-                                                            }}
-                                                        >
-                                                            { "Set" }
-                                                        </button>
-                                                    </div>
-                                                }
-                                            } else {
-                                                html! {}
-                                            }
-                                        }
-                                    </div>
+                                                }}
+                                            />
+                                            <button
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                                                onclick={{
+                                                    let on_topic_change = on_topic_change.clone();
+                                                    let show_topic_input = show_topic_input.clone();
+                                                    Callback::from(move |e: MouseEvent| {
+                                                        on_topic_change.emit(e);
+                                                        show_topic_input.set(false); // Hide input after setting topic
+                                                    })
+                                                }}
+                                            >
+                                                { "Set" }
+                                            </button>
+                                        </div>
+                                    }
+                                } else {
+                                    html! {}
                                 }
-                            } else {
-                                html! {}
                             }
-                        }
+                        </div>
+
 
                         // Voting Section - Show votes to everyone, but only allow interaction if joined
                         {
@@ -538,9 +534,9 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                         }
 
 
-                                        // Results Section - Show votes to everyone
+                                        // Results Section - Show votes to everyone, including non-voters
                                         {
-                                            if !session.current_points().is_empty() {
+                                            if !session.participants().is_empty() {
                                                 html! {
                                                     <div class={if props.is_joined { "border-t pt-6" } else { "" }}>
                                                         <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -554,40 +550,49 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                         </h4>
                                                         <div class="space-y-3">
                                                             {
-                                                                session.current_points().iter().filter_map(|(participant_id, points)| {
-                                                                    // Find participant by ID to get their name
-                                                                    session.participants().iter().find(|p| p.id() == participant_id).map(|participant| {
-                                                                        html! {
-                                                                            <div key={participant_id.to_string()} class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                                                <div class="flex items-center space-x-3">
-                                                                                    <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                        <span class="text-sm font-medium text-white">
-                                                                                            { participant.name().chars().next().unwrap_or('?').to_uppercase().to_string() }
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{ participant.name() }</span>
+                                                                session.participants().iter().map(|participant| {
+                                                                    // Look up points for this participant
+                                                                    let has_voted = session.current_points().contains_key(participant.id());
+                                                                    let participant_points = if has_voted {
+                                                                        session.current_points().get(participant.id()).copied().unwrap()
+                                                                    } else {
+                                                                        None
+                                                                    };
+                                                                    html! {
+                                                                        <div key={participant.id().to_string()} class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                                            <div class="flex items-center space-x-3">
+                                                                                <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                                    <span class="text-sm font-medium text-white">
+                                                                                        { participant.name().chars().next().unwrap_or('?').to_uppercase().to_string() }
+                                                                                    </span>
                                                                                 </div>
-                                                                                <span class={format!(
-                                                                                    "px-3 py-1 rounded-full text-sm font-bold {}",
-                                                                                    if points.is_none() || session.hide_points() {
-                                                                                        "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                                                                                    } else {
-                                                                                        "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300"
-                                                                                    }
-                                                                                )}>{
-                                                                                    if session.hide_points() {
-                                                                                        "•••".to_string()
-                                                                                    } else {
-                                                                                        match points {
-                                                                                            Some(p) if *p == 0 => "?".to_string(),
-                                                                                            Some(p) => p.to_string(),
-                                                                                            None => "?".to_string(),
-                                                                                        }
-                                                                                    }
-                                                                                }</span>
+                                                                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{ participant.name() }</span>
                                                                             </div>
-                                                                        }
-                                                                    })
+                                                                            <span class={format!(
+                                                                                "px-3 py-1 rounded-full text-sm font-bold {}",
+                                                                                if !has_voted || participant_points.is_none() {
+                                                                                    "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+                                                                                } else {
+                                                                                    match participant_points {
+                                                                                        Some(_) => "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300",
+                                                                                        None => "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300",
+                                                                                    }
+                                                                                }
+                                                                            )}>{
+                                                                                if !has_voted {
+                                                                                    "—".to_string()
+                                                                                } else if session.hide_points() {
+                                                                                    "•••".to_string()
+                                                                                } else {
+                                                                                    match participant_points {
+                                                                                        Some(0) => "?".to_string(),
+                                                                                        Some(p) => p.to_string(),
+                                                                                        None => "?".to_string(),
+                                                                                    }
+                                                                                }
+                                                                            }</span>
+                                                                        </div>
+                                                                    }
                                                                 }).collect::<Html>()
                                                             }
                                                         </div>
@@ -595,59 +600,6 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                 }
                                             } else {
                                                 html! {}
-                                            }
-                                        }
-                                    </div>
-                                }
-                            } else {
-                                html! {}
-                            }
-                        }
-
-                        // Participants Section (only show if no votes are happening yet)
-                        {
-                            if session.participants().is_empty() || session.current_points().is_empty() {
-                                html! {
-                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
-                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                                            { format!("Participants ({})", session.participants().len()) }
-                                        </h3>
-
-                                        {
-                                            if session.participants().is_empty() {
-                                                html! {
-                                                    <div class="text-center py-12">
-                                                        <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                                        </svg>
-                                                        <p class="mt-4 text-lg text-gray-500 dark:text-gray-400">{ "Waiting for participants..." }</p>
-                                                        <p class="text-sm text-gray-400 dark:text-gray-500 mb-4">{ "Share this session link to get started" }</p>
-                                                        <CopyUrlButton />
-                                                    </div>
-                                                }
-                                            } else {
-                                                html! {
-                                                    <div class={GRID_LAYOUT}>
-                                                        {
-                                                            session.participants().iter().map(|participant| {
-                                                                html! {
-                                                                    <div key={participant.id().to_string()} class="flex items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                                                        <div class="flex-shrink-0">
-                                                                            <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center">
-                                                                                <span class="text-sm font-medium text-white">
-                                                                                    { participant.name().chars().next().unwrap_or('?').to_uppercase().to_string() }
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div class="ml-3">
-                                                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{ participant.name() }</p>
-                                                                        </div>
-                                                                    </div>
-                                                                }
-                                                            }).collect::<Html>()
-                                                        }
-                                                    </div>
-                                                }
                                             }
                                         }
                                     </div>
