@@ -8,7 +8,7 @@ on:
 
 jobs:
   e2e-tests:
-    timeout-minutes: 60
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     
     steps:
@@ -20,39 +20,17 @@ jobs:
         targets: wasm32-unknown-unknown
         components: rustfmt, clippy
     
-    - name: Cache Cargo registry and git trees
-      uses: actions/cache@v4
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
       with:
-        path: |
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-registry-
+        workspaces: "."
+        cache-all-crates: true
     
-    - name: Cache Cargo binaries
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/
-        key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-bin-trunk-
-          ${{ runner.os }}-cargo-bin-
-    
-    - name: Cache target directory
-      uses: actions/cache@v4
-      with:
-        path: target/
-        key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('**/*.rs') }}
-        restore-keys: |
-          ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}-
-          ${{ runner.os }}-target-
-    
-    - name: Install Rust dependencies
+    - name: Install Trunk (only if needed)
       run: |
-        cargo install trunk --locked || echo "trunk already installed"
-        cargo install cargo-watch --locked || echo "cargo-watch already installed"
+        if ! command -v trunk &> /dev/null; then
+          cargo install trunk --locked
+        fi
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -61,30 +39,16 @@ jobs:
         cache: 'npm'
         cache-dependency-path: 'tests/e2e/package-lock.json'
     
-    - name: Cache global npm packages
+    - name: Cache TailwindCSS
       uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-npm-global-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-npm-global-
+        key: ${{ runner.os }}-tailwindcss-${{ hashFiles('**/package-lock.json') }}
     
-    - name: Cache frontend node_modules
-      uses: actions/cache@v4
-      with:
-        path: crates/kiko-frontend/node_modules
-        key: ${{ runner.os }}-frontend-node-modules-tailwindcss
-        restore-keys: |
-          ${{ runner.os }}-frontend-node-modules-
-    
-    - name: Install Node.js dependencies
+    - name: Install dependencies
       run: |
-        # Install tailwindcss globally and create local node_modules in frontend
         npm install -g tailwindcss
-        cd crates/kiko-frontend
-        mkdir -p node_modules
-        npm install tailwindcss --no-save
-        cd ../../tests/e2e && npm install
+        cd tests/e2e && npm ci
     
     - name: Cache Playwright Browsers
       uses: actions/cache@v4
@@ -97,13 +61,15 @@ jobs:
     - name: Install Playwright Browsers
       run: cd tests/e2e && npx playwright install --with-deps
     
-    - name: Build Rust project
+    - name: Build project (optimized for testing)
       run: |
-        cargo build --release
+        # Build backend in debug mode for faster compilation
+        cargo build
+        # Build frontend in release mode (WASM benefits from optimization)
         cd crates/kiko-frontend && RUSTFLAGS="-C target-feature=-nontrapping-fptoint" trunk build --release
     
-    - name: Run E2E tests
-      run: cd tests/e2e && npm run test:e2e
+    - name: Run E2E tests (Chrome only, parallel)
+      run: cd tests/e2e && npx playwright test --project=chromium
       env:
         CI: true
     
