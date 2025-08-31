@@ -12,8 +12,8 @@ module.exports = defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Use more workers on CI for faster execution */
+  workers: process.env.CI ? 4 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [["html", { open: "never" }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -34,26 +34,25 @@ module.exports = defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
-
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
-
-    /* Test against mobile viewports. */
-    {
-      name: "Mobile Chrome",
-      use: { ...devices["Pixel 5"] },
-    },
-    {
-      name: "Mobile Safari",
-      use: { ...devices["iPhone 12"] },
-    },
+    // Only run additional browsers locally or when specifically needed
+    ...(process.env.CI ? [] : [
+      {
+        name: "firefox",
+        use: { ...devices["Desktop Firefox"] },
+      },
+      {
+        name: "webkit", 
+        use: { ...devices["Desktop Safari"] },
+      },
+      {
+        name: "Mobile Chrome",
+        use: { ...devices["Pixel 5"] },
+      },
+      {
+        name: "Mobile Safari",
+        use: { ...devices["iPhone 12"] },
+      },
+    ]),
   ],
 
   /* Run your local dev server before starting the tests */
@@ -62,6 +61,6 @@ module.exports = defineConfig({
     cwd: "../..",
     url: "http://localhost:8080",
     reuseExistingServer: !process.env.CI,
-    timeout: 5 * 60 * 1000, // 5 minutes for Rust to compile and start
+    timeout: 3 * 60 * 1000, // 3 minutes for server startup
   },
 });

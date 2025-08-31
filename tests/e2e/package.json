@@ -4,6 +4,8 @@
   "description": "End-to-end tests for Kiko pointing poker app",
   "scripts": {
     "test:e2e": "playwright test",
+    "test:e2e:chrome": "playwright test --project=chromium",
+    "test:e2e:all-browsers": "CI=false playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:ui": "playwright test --ui",

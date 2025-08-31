@@ -15,7 +15,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - WASM target: `rustup target add wasm32-unknown-unknown`
 - Node.js v20.0.0+ for `npx` and TailwindCSS: `npm i -G tailwindcss`
 
-### Building and Testing
+### Code Quality and Testing
+- `cargo fmt` - Format code (runs automatically via pre-commit hooks)
+- `cargo clippy` - Lint code (runs automatically via pre-commit hooks, treats warnings as errors)
+- `cargo test` - Run unit tests for all workspace crates
 - `cargo doc --no-deps --document-private-items` - Generate documentation for workspace crates
 - `cargo doc --no-deps --document-private-items --open` - Generate and open docs
 - `./bin/e2e` - Run end-to-end tests headlessly
@@ -23,6 +26,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `./bin/e2e --debug` - Run E2E tests in debug mode
 - `./bin/e2e --ui` - Run E2E tests in interactive UI mode
 - `./bin/e2e --show-report` - Show existing test report in browser
+
+### Pre-commit Hooks
+- Pre-commit hooks automatically run `cargo fmt` and `cargo clippy` on each commit
+- Install with `pre-commit install` (one-time setup)
+- Run manually with `pre-commit run --all-files`
 
 ### Individual Services
 - Backend: `cd crates/kiko-backend && cargo run` (dev) or `cargo run --release`

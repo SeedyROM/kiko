@@ -274,7 +274,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
     });
 
     html! {
-        <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <div class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             // Show WebSocket error if present
             {
                 if let Some(ws_err) = ws_error.as_ref() {
