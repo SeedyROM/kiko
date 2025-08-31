@@ -9,14 +9,17 @@ mod pages;
 mod providers;
 mod routes;
 
-use providers::ThemeProvider;
 use yew::prelude::*;
 use yew_router::prelude::*;
+
+use crate::components::Header;
+use crate::providers::ThemeProvider;
 
 #[function_component(App)]
 fn app() -> Html {
     html! {
         <ThemeProvider>
+            <Header />
             <BrowserRouter>
                 <Switch<routes::Route> render={routes::switch} />
             </BrowserRouter>

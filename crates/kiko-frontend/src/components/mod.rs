@@ -5,11 +5,13 @@
 
 pub mod confetti;
 pub mod copy_url_button;
+pub mod header;
 pub mod sessions;
 pub mod theme_toggle;
 pub mod websocket_chat;
 
 pub use confetti::*;
 pub use copy_url_button::*;
+pub use header::*;
 pub use sessions::*;
 pub use theme_toggle::*;

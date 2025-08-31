@@ -1,19 +1,14 @@
 use yew::prelude::*;
 
-use crate::components::{CreateSession, ThemeToggle};
+use crate::components::CreateSession;
 
 #[function_component(HomePage)]
 pub fn home_page() -> Html {
     html! {
-        <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-            <div class="p-8">
-                <div class="flex justify-between items-center mb-8">
-                    <h1 class="text-2xl font-bold">{ "Kiko Pointing Poker" }</h1>
-                    <ThemeToggle />
-                </div>
-
+        <div class="min-h-screen p-8">
+            <div class="max-w-7xl mx-auto">
                 // Create Session Section
-                <div class="mb-8">
+                <div class="mb-6">
                     <CreateSession />
                 </div>
             </div>
