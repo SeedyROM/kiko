@@ -20,7 +20,7 @@ Kiko is a Hawaiian word meaning "dot," "point," or "spot" - referring to small m
     - Install the wasm target `rustup target add wasm32-unknown-unknown`
 
 - [`node`](https://nodejs.org/en/download/) **(v20.0.0 or later) for `npx`**
-    - Install tailwind globally `npm i -G tailwindcss`
+    - Install tailwind globally `npm i -g tailwindcss`
 
 ### 🏃‍♂️ Running Locally
 
