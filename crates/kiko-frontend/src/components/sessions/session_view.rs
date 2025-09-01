@@ -574,7 +574,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                                                     "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
                                                                                 } else {
                                                                                     match participant_points {
-                                                                                        Some(_) => "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300",
+                                                                                        Some(_) => "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300",
                                                                                         None => "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300",
                                                                                     }
                                                                                 }
