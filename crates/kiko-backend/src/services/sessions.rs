@@ -160,6 +160,7 @@ pub trait SessionService<Session = kiko::data::Session, Participant = kiko::data
 /// assert_eq!(sessions.len(), 1);
 /// assert_eq!(sessions[0].name, "Team Planning");
 /// ```
+#[derive(Clone)]
 pub struct SessionServiceInMemory {
     sessions: DashMap<SessionId, kiko::data::Session>,
 }
