@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Backend runs on port 3030, frontend on port 8080
 
 ### Prerequisites
-- Rust 1.85.0+ with `cargo-watch` and `trunk` installed
+- Rust 1.88.0+ with `cargo-watch` and `trunk` installed
 - WASM target: `rustup target add wasm32-unknown-unknown`
 - Node.js v20.0.0+ for `npx` and TailwindCSS: `npm i -G tailwindcss`
 
@@ -54,6 +54,20 @@ Since WASM benchmarking is limited, use browser dev tools for frontend performan
 ### Individual Services
 - Backend: `cd crates/kiko-backend && cargo run` (dev) or `cargo run --release`
 - Frontend: `cd crates/kiko-frontend && trunk serve` (dev) or `trunk serve --release`
+
+### Docker Deployment
+- `docker-compose up` - Start both services in development mode with Docker
+- `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up` - Production deployment with resource limits
+- `docker-compose build` - Build both Docker images
+- `docker-compose build frontend` - Build only frontend image
+- `docker-compose build backend` - Build only backend image
+
+#### Docker Architecture
+- **Multi-stage builds**: Both frontend and backend use optimized multi-stage Dockerfiles
+- **Frontend**: Rust 1.88 builder → Alpine runtime with nginx and brotli compression
+- **Backend**: Rust 1.88 builder → Debian slim runtime
+- **Compression**: Frontend serves assets with brotli compression for 70-85% size reduction
+- **Security**: Both containers run as non-root users with health checks
 
 ## Architecture
 
