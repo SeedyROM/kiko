@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Development files
+README.md
+CLAUDE.md
+.env*
+
+# Build artifacts
+target/
+dist/
+node_modules/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Development scripts
+bin/dev
+bin/e2e
+
+# Temporary files
+tmp/
+temp/
