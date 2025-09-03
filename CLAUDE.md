@@ -27,6 +27,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `./bin/e2e --ui` - Run E2E tests in interactive UI mode
 - `./bin/e2e --show-report` - Show existing test report in browser
 
+### Performance Testing
+- `cargo bench` - Run all performance benchmarks
+- `cargo bench --bench pubsub_performance` - Test PubSub messaging performance
+- `cargo bench --bench session_service_performance` - Test session management performance  
+- `cargo bench -p kiko --bench id_generation_performance` - Test ID generation performance
+- View HTML reports: `open target/criterion/report/index.html`
+
+#### Performance Benchmarks Included
+- **PubSub Performance**: Tests message throughput, concurrent operations, and memory cleanup
+- **Session Service**: Tests CRUD operations, participant management, and concurrent access
+- **ID Generation**: Tests uniqueness, throughput, and serialization performance
+
+#### Frontend Performance Testing
+Since WASM benchmarking is limited, use browser dev tools for frontend performance:
+- **Chrome DevTools Performance**: Record and analyze component renders
+- **Browser Console timing**: Use `console.time()` and `console.timeEnd()` in components
+- **WebSocket message timing**: Monitor real-time message latency in Network tab
+- **Memory usage**: Check for memory leaks in Memory tab during long sessions
+
 ### Pre-commit Hooks
 - Pre-commit hooks automatically run `cargo fmt` and `cargo clippy` on each commit
 - Install with `pre-commit install` (one-time setup)

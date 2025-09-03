@@ -23,9 +23,21 @@ color-eyre = "0.6.5"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
 tracing-web = { version = "0.1.3", optional = true }
-tracing-subscriber = { version = "0.3.19", features = ["fmt", "env-filter", "time"], optional = true }
+tracing-subscriber = { version = "0.3.19", features = [
+    "fmt",
+    "env-filter",
+    "time",
+], optional = true }
 time = { version = "0.3", features = ["wasm-bindgen"] }
 
 [features]
 default = ["dev-logging"]
 dev-logging = ["tracing-web", "tracing-subscriber"]
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+rand = "0.8"
+
+[[bench]]
+name = "id_generation"
+harness = false
