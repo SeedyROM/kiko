@@ -13,7 +13,7 @@ Kiko is a Hawaiian word meaning "dot," "point," or "spot" - referring to small m
 ## 👨‍💻 Development
 
 ### 📓 Prerequisite Dependencies
-- [`rust`](https://www.rust-lang.org/tools/install) **(v1.85.0 or later)**
+- [`rust`](https://www.rust-lang.org/tools/install) **(v1.88.0 or later)**
     - [`rustup`](https://rustup.rs/)
     - [`cargo-watch`](https://crates.io/crates/cargo-watch)
     - [`trunk`](https://crates.io/crates/trunk)
@@ -53,3 +53,29 @@ pre-commit run --all-files
 ```
 
 The hooks will format code and check for linting issues, treating warnings as errors.
+
+### 🐳 Docker Deployment
+
+For production deployment with optimized builds and compression:
+
+```bash
+# Development mode
+docker-compose up
+
+# Production mode with resource limits
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+# Build all images
+docker-compose build
+
+# Build individual services
+docker-compose build frontend
+docker-compose build backend
+```
+
+#### Docker Architecture
+- **Multi-stage builds**: Optimized Dockerfiles for both services
+- **Frontend**: Rust 1.88 builder → Alpine runtime with nginx and brotli compression
+- **Backend**: Rust 1.88 builder → Debian slim runtime  
+- **Compression**: Brotli compression provides 70-85% size reduction for frontend assets
+- **Security**: Non-root containers with health checks
