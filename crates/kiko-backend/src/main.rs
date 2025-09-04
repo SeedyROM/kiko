@@ -11,6 +11,7 @@ use axum::{
     routing::{get, post},
 };
 use tokio::{net::TcpListener, signal};
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tower_http::cors::CorsLayer;
 
 use kiko::errors::Report;
@@ -86,12 +87,34 @@ async fn shutdown_signal() {
 
 /// Setup the application routes
 fn setup_routes(app_state: Arc<AppState>) -> Router {
-    // TODO(SeedyROM): Add rate limiting configuration
+    // General rate limiting config: 60 requests per minute with burst of 10
+    let general_config = GovernorConfigBuilder::default()
+        .per_second(1) // 1 request per second = 60 per minute
+        .burst_size(10) // Allow bursts of up to 10 requests
+        .finish()
+        .unwrap();
+
+    // Stricter rate limiting for session creation: burst of 3
+    let session_config = GovernorConfigBuilder::default()
+        .per_second(1) // Base rate: 1 per second
+        .burst_size(3) // Smaller burst for session creation
+        .finish()
+        .unwrap();
+
+    // Session endpoints with stricter rate limiting
+    let session_routes = Router::new()
+        .route("/session", post(handlers::v1::session::create))
+        .layer(GovernorLayer::new(session_config));
+
+    // Other API endpoints with general rate limiting
+    let other_routes = Router::new()
+        .route("/session/{session_id}", get(handlers::v1::session::get))
+        .route("/ws", get(handlers::v1::websocket::upgrade));
 
     let api_routes = Router::new()
-        .route("/session", post(handlers::v1::session::create))
-        .route("/session/{session_id}", get(handlers::v1::session::get))
-        .route("/ws", get(handlers::v1::websocket::upgrade))
+        .merge(session_routes)
+        .merge(other_routes)
+        .layer(GovernorLayer::new(general_config))
         .with_state(app_state.clone());
 
     Router::new()
