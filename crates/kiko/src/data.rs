@@ -11,6 +11,15 @@ use serde::{Deserialize, Serialize};
 use crate::id::{ParticipantId, SessionId};
 use crate::log;
 
+/// Get the current Unix timestamp in seconds.
+/// Panics if system time is unavailable, as the application cannot function without time.
+fn current_timestamp() -> u64 {
+    std::time::UNIX_EPOCH
+        .elapsed()
+        .expect("System time must be available for session management")
+        .as_secs()
+}
+
 /// Represents a participant in a session.
 ///
 /// A participant has a unique ID and a display name. Participants can join and leave
@@ -49,7 +58,7 @@ pub struct Session {
 
 impl Session {
     pub fn new(name: String, duration: Duration) -> Self {
-        let started = std::time::UNIX_EPOCH.elapsed().unwrap().as_secs();
+        let started = current_timestamp();
         let id = SessionId::new();
 
         Self {
@@ -73,12 +82,14 @@ impl Session {
     }
 
     pub fn is_active(&self) -> bool {
-        let elapsed = std::time::UNIX_EPOCH.elapsed().unwrap().as_secs() - self.started;
+        let now = current_timestamp();
+        let elapsed = now.saturating_sub(self.started);
         elapsed < self.duration.as_secs()
     }
 
     pub fn remaining_time(&self) -> Duration {
-        let elapsed = std::time::UNIX_EPOCH.elapsed().unwrap().as_secs() - self.started;
+        let now = current_timestamp();
+        let elapsed = now.saturating_sub(self.started);
         if elapsed < self.duration.as_secs() {
             Duration::from_secs(self.duration.as_secs() - elapsed)
         } else {

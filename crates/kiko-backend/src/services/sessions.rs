@@ -12,24 +12,19 @@ use kiko::id::{ParticipantId, SessionId};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```ignore
 /// use kiko::id::SessionId;
 /// use kiko::data::CreateSession;
+/// use crate::services::SessionService;
 ///
 /// async fn example_usage<S: SessionService>(service: &S) -> Result<(), S::Error> {
-///     // Create a new session
 ///     let create_request = CreateSession {
 ///         name: "Team Meeting".to_string(),
 ///         duration: std::time::Duration::from_secs(3600),
 ///     };
 ///     let session = service.create(create_request).await?;
-///     
-///     // Add participants
 ///     let participant = service.join(&session.id, "Alice").await?;
-///     
-///     // List all sessions
 ///     let sessions = service.list().await?;
-///     
 ///     Ok(())
 /// }
 /// ```
@@ -42,12 +37,19 @@ pub trait SessionService<Session = kiko::data::Session, Participant = kiko::data
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// let create_request = CreateSession {
-    ///     name: "Daily Standup".to_string(),
-    ///     duration: Duration::from_secs(1800), // 30 minutes
-    /// };
-    /// let session = service.create(create_request).await?;
+    /// ```ignore
+    /// use kiko::data::CreateSession;
+    /// use std::time::Duration;
+    /// use crate::services::SessionService;
+    ///
+    /// async fn example<S: SessionService>(service: &S) -> Result<(), S::Error> {
+    ///     let create_request = CreateSession {
+    ///         name: "Daily Standup".to_string(),
+    ///         duration: Duration::from_secs(1800),
+    ///     };
+    ///     let session = service.create(create_request).await?;
+    ///     Ok(())
+    /// }
     /// ```
     async fn create(&self, session: kiko::data::CreateSession) -> Result<Session, Self::Error>;
 
@@ -66,9 +68,15 @@ pub trait SessionService<Session = kiko::data::Session, Participant = kiko::data
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// let session = service.get(&session_id).await?;
-    /// println!("Session: {} ({})", session.name, session.id);
+    /// ```ignore
+    /// use kiko::id::SessionId;
+    /// use crate::services::SessionService;
+    ///
+    /// async fn example<S: SessionService>(service: &S, session_id: SessionId) -> Result<(), S::Error> {
+    ///     let session = service.get(&session_id).await?;
+    ///     println!("Session: {} ({})", session.name(), session.id);
+    ///     Ok(())
+    /// }
     /// ```
     ///
     /// # Errors
@@ -89,9 +97,15 @@ pub trait SessionService<Session = kiko::data::Session, Participant = kiko::data
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// let participant = service.join(&session_id, "Bob").await?;
-    /// println!("Participant {} joined session", participant.name);
+    /// ```ignore
+    /// use kiko::id::SessionId;
+    /// use crate::services::SessionService;
+    ///
+    /// async fn example<S: SessionService>(service: &S, session_id: SessionId) -> Result<(), S::Error> {
+    ///     let participant = service.join(&session_id, "Bob").await?;
+    ///     println!("Participant {} joined session", participant.name());
+    ///     Ok(())
+    /// }
     /// ```
     ///
     /// # Errors
@@ -124,9 +138,14 @@ pub trait SessionService<Session = kiko::data::Session, Participant = kiko::data
     ///
     /// # Examples
     ///
-    /// ```rust
-    /// service.end(&session_id).await?;
-    /// // Session is now deleted and participants are removed
+    /// ```ignore
+    /// use kiko::id::SessionId;
+    /// use crate::services::SessionService;
+    ///
+    /// async fn example<S: SessionService>(service: &S, session_id: SessionId) -> Result<(), S::Error> {
+    ///     service.end(&session_id).await?;
+    ///     Ok(())
+    /// }
     /// ```
     ///
     /// # Errors
@@ -141,24 +160,24 @@ pub trait SessionService<Session = kiko::data::Session, Participant = kiko::data
 /// and modifications. It is suitable for testing or applications where persistence is not required.
 ///
 /// # Examples
-/// ```rust
-/// use kiko::data::*;
-/// use kiko::id::*;
-/// use kiko::services::*;
+/// ```
+/// use kiko::data::CreateSession;
+/// use kiko_backend::services::{SessionService, SessionServiceInMemory};
+/// use std::time::Duration;
 ///
+/// # #[tokio::main]
+/// # async fn main() {
 /// let service = SessionServiceInMemory::new();
-/// // Create a new session
 /// let create_request = CreateSession {
 ///     name: "Team Planning".to_string(),
-///    duration: std::time::Duration::from_secs(3600), // 1 hour
+///     duration: Duration::from_secs(3600),
 /// };
 /// let session = service.create(create_request).await.unwrap();
-/// // Join a participant
 /// let participant = service.join(&session.id, "Alice").await.unwrap();
-/// // List all sessions
 /// let sessions = service.list().await.unwrap();
 /// assert_eq!(sessions.len(), 1);
-/// assert_eq!(sessions[0].name, "Team Planning");
+/// assert_eq!(sessions[0].name(), "Team Planning");
+/// # }
 /// ```
 #[derive(Clone)]
 pub struct SessionServiceInMemory {

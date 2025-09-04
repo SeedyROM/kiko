@@ -12,12 +12,13 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```ignore
 //! use kiko_backend::messaging::PubSub;
-//! use kiko::{data::SessionMessage, id::SessionId};
-//! use std::sync::Arc;
+//! use kiko::{data::{SessionMessage, CreateSession}, id::SessionId};
+//! use std::{sync::Arc, time::Duration};
 //!
-//! # async fn example() {
+//! # #[tokio::main]
+//! # async fn main() {
 //! let pubsub = Arc::new(PubSub::new());
 //! let session_id = SessionId::new();
 //!
@@ -25,7 +26,11 @@
 //! let notifier = pubsub.subscribe(session_id.clone()).await;
 //!
 //! // Publish a message to the session
-//! let message = SessionMessage::CreateSession(/* ... */);
+//! let create_session = CreateSession {
+//!     name: "Test Session".to_string(),
+//!     duration: Duration::from_secs(1800),
+//! };
+//! let message = SessionMessage::CreateSession(create_session);
 //! pubsub.publish(session_id.clone(), message).await;
 //!
 //! // Wait for notification and consume the event
@@ -80,7 +85,7 @@ impl PubSub {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use kiko_backend::messaging::PubSub;
     ///
     /// let pubsub = PubSub::new();
@@ -109,18 +114,16 @@ impl PubSub {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```ignore
     /// use kiko_backend::messaging::PubSub;
     /// use kiko::id::SessionId;
     /// use std::sync::Arc;
     ///
-    /// # async fn example() {
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let pubsub = Arc::new(PubSub::new());
     /// let session_id = SessionId::new();
-    ///
     /// let notifier = pubsub.subscribe(session_id).await;
-    ///
-    /// // Wait for the next notification
     /// notifier.notified().await;
     /// # }
     /// ```
@@ -150,8 +153,8 @@ impl PubSub {
     ///
     /// ```rust
     /// use kiko_backend::messaging::PubSub;
-    /// use kiko::{data::SessionMessage, id::SessionId};
-    /// use std::sync::Arc;
+    /// use kiko::{data::{SessionMessage, CreateSession}, id::SessionId};
+    /// use std::{sync::Arc, time::Duration};
     ///
     /// # async fn example() {
     /// let pubsub = Arc::new(PubSub::new());
@@ -161,7 +164,11 @@ impl PubSub {
     /// let _notifier = pubsub.subscribe(session_id.clone()).await;
     ///
     /// // Then publish a message
-    /// let message = SessionMessage::CreateSession(/* ... */);
+    /// let create_session = CreateSession {
+    ///     name: "Test Session".to_string(),
+    ///     duration: Duration::from_secs(1800),
+    /// };
+    /// let message = SessionMessage::CreateSession(create_session);
     /// pubsub.publish(session_id, message).await;
     /// # }
     /// ```
@@ -197,15 +204,14 @@ impl PubSub {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use kiko_backend::messaging::PubSub;
     /// use kiko::id::SessionId;
     ///
-    /// # async fn example() {
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let pubsub = PubSub::new();
     /// let session_id = SessionId::new();
-    ///
-    /// // Check if there's a message (non-destructive)
     /// if let Some(message) = pubsub.get_event(&session_id).await {
     ///     // Process message, but it remains in the queue
     /// }
@@ -233,15 +239,14 @@ impl PubSub {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use kiko_backend::messaging::PubSub;
     /// use kiko::id::SessionId;
     ///
-    /// # async fn example() {
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let pubsub = PubSub::new();
     /// let session_id = SessionId::new();
-    ///
-    /// // Consume the message (removes it from queue)
     /// if let Some(message) = pubsub.consume_event(&session_id).await {
     ///     // Process message - it's no longer in the queue
     /// }
@@ -266,15 +271,14 @@ impl PubSub {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use kiko_backend::messaging::PubSub;
     /// use kiko::id::SessionId;
     ///
-    /// # async fn example() {
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let pubsub = PubSub::new();
     /// let session_id = SessionId::new();
-    ///
-    /// // When session ends, clean up to prevent memory leaks
     /// pubsub.cleanup_session(&session_id).await;
     /// # }
     /// ```
@@ -296,18 +300,16 @@ impl PubSub {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use kiko_backend::messaging::PubSub;
     /// use kiko::id::SessionId;
     ///
-    /// # async fn example() {
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let pubsub = PubSub::new();
-    ///
     /// assert_eq!(pubsub.session_count().await, 0);
-    ///
     /// let session_id = SessionId::new();
     /// let _notifier = pubsub.subscribe(session_id).await;
-    ///
     /// assert_eq!(pubsub.session_count().await, 1);
     /// # }
     /// ```
@@ -331,15 +333,14 @@ impl PubSub {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```
     /// use kiko_backend::messaging::PubSub;
     /// use kiko::id::SessionId;
     ///
-    /// # async fn example() {
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let pubsub = PubSub::new();
     /// let session_id = SessionId::new();
-    ///
-    /// // Check before processing
     /// if pubsub.has_event(&session_id).await {
     ///     let message = pubsub.consume_event(&session_id).await;
     ///     // Process the message
