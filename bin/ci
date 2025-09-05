@@ -11,6 +11,7 @@ lsof -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true
 
 # Start backend from pre-built binary
 echo "📡 Starting backend server..."
+chmod +x ./target/release/kiko-backend
 ./target/release/kiko-backend &
 BACKEND_PID=$!
 
