@@ -95,17 +95,18 @@ jobs:
     - name: Install Playwright Browsers
       run: cd tests/e2e && npx playwright install --with-deps
     
-    - name: Build Rust project
-      run: |
-        cargo build --release
-        cd crates/kiko-frontend && RUSTFLAGS="-C target-feature=-nontrapping-fptoint" trunk build --release
+    - name: Build backend (dev mode)
+      run: cargo build -p kiko-backend
+    
+    - name: Build frontend (release mode)  
+      run: cd crates/kiko-frontend && RUSTFLAGS="-C target-feature=-nontrapping-fptoint" trunk build --release
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
         path: |
-          target/release/kiko-backend
+          target/debug/kiko-backend
           crates/kiko-frontend/dist/
         retention-days: 1
 
@@ -153,7 +154,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: playwright-report
+        name: playwright-report-${{ matrix.project }}
         path: tests/e2e/playwright-report/
         retention-days: 30
     
@@ -161,6 +162,6 @@ jobs:
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: test-screenshots
+        name: test-screenshots-${{ matrix.project }}
         path: tests/e2e/test-screenshots/
         retention-days: 30
