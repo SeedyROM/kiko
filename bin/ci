@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Simple script to start pre-built servers for CI/E2E testing
+
+set -e
+
+# Kill any existing processes on our target ports
+echo "🧹 Cleaning up existing processes..."
+lsof -ti:3030 2>/dev/null | xargs kill -9 2>/dev/null || true
+lsof -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true
+
+# Start backend from pre-built binary
+echo "📡 Starting backend server..."
+./target/release/kiko-backend &
+BACKEND_PID=$!
+
+# Wait for backend to be ready
+echo "⏳ Waiting for backend to be ready..."
+for i in {1..20}; do
+    if curl -s -f http://localhost:3030/health >/dev/null 2>&1; then
+        echo "✅ Backend is ready!"
+        break
+    fi
+    if [ $i -eq 20 ]; then
+        echo "❌ Backend failed to start"
+        kill $BACKEND_PID 2>/dev/null || true
+        exit 1
+    fi
+    sleep 1
+done
+
+# Start frontend using built dist files with simple HTTP server
+echo "🎨 Starting frontend server..."
+cd crates/kiko-frontend/dist
+python3 -m http.server 8080 &
+FRONTEND_PID=$!
+
+# Wait a bit for frontend to start
+sleep 2
+
+echo "🎉 Both servers are running!"
+echo "📡 Backend:  http://localhost:3030"
+echo "🎨 Frontend: http://localhost:8080"
+
+# Function to cleanup on exit
+cleanup() {
+    echo "🛑 Shutting down servers..."
+    kill $BACKEND_PID 2>/dev/null || true
+    kill $FRONTEND_PID 2>/dev/null || true
+    exit 0
+}
+
+trap cleanup EXIT INT TERM
+
+# Keep script running
+wait

@@ -39,7 +39,7 @@ module.exports = defineConfig({
       use: { ...devices["Desktop Firefox"] },
     },
     {
-      name: "webkit", 
+      name: "webkit",
       use: { ...devices["Desktop Safari"] },
     },
     {
@@ -54,10 +54,10 @@ module.exports = defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "./bin/dev",
+    command: process.env.CI ? "./bin/ci" : "./bin/dev",
     cwd: "../..",
     url: "http://localhost:8080",
     reuseExistingServer: !process.env.CI,
-    timeout: 3 * 60 * 1000, // 3 minutes for server startup
+    timeout: process.env.CI ? 60 * 1000 : 3 * 60 * 1000, // 1 minute for CI, 3 minutes for dev
   },
 });
