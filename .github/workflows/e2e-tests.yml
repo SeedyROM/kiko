@@ -82,6 +82,18 @@ jobs:
         cd crates/kiko-frontend
         mkdir -p node_modules
         npm install tailwindcss --no-save
+        cd ../../tests/e2e && npm install
+    
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
+    
+    - name: Install Playwright Browsers
+      run: cd tests/e2e && npx playwright install --with-deps
     
     - name: Build Rust project
       run: |
@@ -128,12 +140,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ matrix.project }}-${{ hashFiles('tests/e2e/package-lock.json') }}
+        key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-playwright-${{ matrix.project }}-
-    
-    - name: Install Playwright Browsers
-      run: cd tests/e2e && npx playwright install --with-deps ${{ matrix.project }}
+          ${{ runner.os }}-playwright-
     
     - name: Run E2E tests
       run: cd tests/e2e && npx playwright test --project="${{ matrix.project }}"
