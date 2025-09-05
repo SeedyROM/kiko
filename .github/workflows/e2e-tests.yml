@@ -10,6 +10,10 @@ jobs:
   e2e-tests:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit, "Mobile Chrome", "Mobile Safari"]
     
     steps:
     - uses: actions/checkout@v4
@@ -103,7 +107,7 @@ jobs:
         cd crates/kiko-frontend && RUSTFLAGS="-C target-feature=-nontrapping-fptoint" trunk build --release
     
     - name: Run E2E tests
-      run: cd tests/e2e && npm run test:e2e
+      run: cd tests/e2e && npx playwright test --project="${{ matrix.project }}"
       env:
         CI: true
     
