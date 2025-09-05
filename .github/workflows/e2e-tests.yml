@@ -7,13 +7,9 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  e2e-tests:
-    timeout-minutes: 60
+  build:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [chromium, firefox, webkit, "Mobile Chrome", "Mobile Safari"]
     
     steps:
     - uses: actions/checkout@v4
@@ -62,8 +58,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: 'tests/e2e/package-lock.json'
     
     - name: Cache global npm packages
       uses: actions/cache@v4
@@ -88,23 +82,58 @@ jobs:
         cd crates/kiko-frontend
         mkdir -p node_modules
         npm install tailwindcss --no-save
-        cd ../../tests/e2e && npm install
-    
-    - name: Cache Playwright Browsers
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
-    
-    - name: Install Playwright Browsers
-      run: cd tests/e2e && npx playwright install --with-deps
     
     - name: Build Rust project
       run: |
         cargo build --release
         cd crates/kiko-frontend && RUSTFLAGS="-C target-feature=-nontrapping-fptoint" trunk build --release
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          target/release/kiko-backend
+          crates/kiko-frontend/dist/
+        retention-days: 1
+
+  e2e-tests:
+    needs: build
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit, "Mobile Chrome", "Mobile Safari"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'tests/e2e/package-lock.json'
+    
+    - name: Install E2E test dependencies
+      run: cd tests/e2e && npm install
+    
+    - name: Cache Playwright Browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ matrix.project }}-${{ hashFiles('tests/e2e/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-${{ matrix.project }}-
+    
+    - name: Install Playwright Browsers
+      run: cd tests/e2e && npx playwright install --with-deps ${{ matrix.project }}
     
     - name: Run E2E tests
       run: cd tests/e2e && npx playwright test --project="${{ matrix.project }}"
