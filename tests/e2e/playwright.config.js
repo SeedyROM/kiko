@@ -12,8 +12,8 @@ module.exports = defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Use more workers on CI for faster execution */
-  workers: process.env.CI ? 4 : undefined,
+  /* Use single worker on CI to avoid resource contention */
+  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [["html", { open: "never" }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -26,7 +26,14 @@ module.exports = defineConfig({
 
     /* Take screenshot on failure */
     screenshot: "only-on-failure",
+
+    /* Increase timeouts for CI */
+    actionTimeout: process.env.CI ? 30000 : 10000,
+    navigationTimeout: process.env.CI ? 45000 : 20000,
   },
+
+  /* Global test timeout */
+  timeout: process.env.CI ? 60000 : 30000,
 
   /* Configure projects for major browsers */
   projects: [
