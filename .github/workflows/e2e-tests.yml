@@ -148,7 +148,7 @@ jobs:
     - name: Install webkit system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libwoff1 libopus0 libwebp6 libenchant-2-2 libgudev-1.0-0 libsecret-1-0 libhyphen0 libgdk-pixbuf2.0-0 libegl1 libxss1 libevent-2.1-7 libfontconfig1 libfreetype6
+        sudo apt-get install -y libwoff1 libopus0 libwebp7 libenchant-2-2 libgudev-1.0-0 libsecret-1-0 libhyphen0 libgdk-pixbuf2.0-0 libegl1 libxss1 libevent-2.1-7 libfontconfig1 libfreetype6
     
     - name: Run E2E tests
       run: cd tests/e2e && npx playwright test --project="${{ matrix.project }}"
