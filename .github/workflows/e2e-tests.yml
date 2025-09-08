@@ -120,6 +120,26 @@ jobs:
     - name: Make backend executable
       run: chmod +x target/debug/kiko-backend
     
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+    
+    - name: Cache Cargo binaries
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/
+        key: ${{ runner.os }}-cargo-bin-trunk-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-bin-trunk-
+          ${{ runner.os }}-cargo-bin-
+    
+    - name: Install trunk
+      run: |
+        if ! command -v trunk &> /dev/null; then
+          cargo install trunk --locked
+        fi
+    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
