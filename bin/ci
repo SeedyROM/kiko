@@ -30,10 +30,10 @@ for i in {1..20}; do
     sleep 1
 done
 
-# Start frontend using built dist files with simple HTTP server
+# Start frontend using trunk serve in release mode
 echo "🎨 Starting frontend server..."
-cd crates/kiko-frontend/dist
-python3 -m http.server 8080 &
+cd crates/kiko-frontend
+trunk serve --release --port 8080 &
 FRONTEND_PID=$!
 
 # Wait a bit for frontend to start
