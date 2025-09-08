@@ -26,14 +26,7 @@ module.exports = defineConfig({
 
     /* Take screenshot on failure */
     screenshot: "only-on-failure",
-
-    /* Increase timeouts for CI */
-    actionTimeout: process.env.CI ? 30000 : 10000,
-    navigationTimeout: process.env.CI ? 45000 : 20000,
   },
-
-  /* Global test timeout */
-  timeout: process.env.CI ? 60000 : 30000,
 
   /* Configure projects for major browsers */
   projects: [
