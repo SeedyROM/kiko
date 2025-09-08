@@ -84,16 +84,6 @@ jobs:
         npm install tailwindcss --no-save
         cd ../../tests/e2e && npm install
     
-    - name: Cache Playwright Browsers
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
-    
-    - name: Install Playwright Browsers
-      run: cd tests/e2e && npx playwright install --with-deps
     
     - name: Build backend (dev mode)
       run: cargo build -p kiko-backend
@@ -137,18 +127,17 @@ jobs:
     - name: Install E2E test dependencies
       run: cd tests/e2e && npm install
     
-    - name: Cache Playwright Browsers
+    - name: Cache Playwright Browsers with deps
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('tests/e2e/package-lock.json') }}
+        key: ${{ runner.os }}-playwright-${{ matrix.project }}-${{ hashFiles('tests/e2e/package-lock.json') }}-with-deps
         restore-keys: |
+          ${{ runner.os }}-playwright-${{ matrix.project }}-
           ${{ runner.os }}-playwright-
     
-    - name: Install webkit system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libwoff1 libopus0 libwebp7 libenchant-2-2 libgudev-1.0-0 libsecret-1-0 libhyphen0 libgdk-pixbuf2.0-0 libegl1 libxss1 libevent-2.1-7 libfontconfig1 libfreetype6
+    - name: Install Playwright browser with dependencies
+      run: cd tests/e2e && npx playwright install ${{ matrix.project }} --with-deps
     
     - name: Run E2E tests
       run: cd tests/e2e && npx playwright test --project="${{ matrix.project }}"
