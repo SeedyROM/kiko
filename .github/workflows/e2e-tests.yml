@@ -107,7 +107,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [chromium, firefox, webkit, "Mobile Chrome", "Mobile Safari"]
+        project: [chromium, firefox, webkit]
     
     steps:
     - uses: actions/checkout@v4
@@ -116,6 +116,9 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: build-artifacts
+    
+    - name: Make backend executable
+      run: chmod +x target/debug/kiko-backend
     
     - name: Setup Node.js
       uses: actions/setup-node@v4

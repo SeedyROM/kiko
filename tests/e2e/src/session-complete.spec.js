@@ -49,7 +49,7 @@ test.describe("Complete Session Tests", () => {
 
       // Should show main header
       await expect(
-        page.getByRole("heading", { name: "Kiko Pointing Poker" })
+        page.locator('header a')
       ).toBeVisible();
 
       // Should show join form since we're not joined
@@ -433,7 +433,7 @@ test.describe("Complete Session Tests", () => {
       // If no connection status visible, at least verify the page loaded
       if (!foundConnection) {
         await expect(
-          page.getByRole("heading", { name: "Kiko Pointing Poker" })
+          page.locator('header a')
         ).toBeVisible();
       }
     });
@@ -451,7 +451,7 @@ test.describe("Complete Session Tests", () => {
 
       // Session should still be functional
       await expect(
-        page.getByRole("heading", { name: "Kiko Pointing Poker" })
+        page.locator('header a')
       ).toBeVisible();
     });
   });

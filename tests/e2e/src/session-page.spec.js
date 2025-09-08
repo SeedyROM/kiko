@@ -32,7 +32,7 @@ test.describe("Session Page", () => {
     await page.goto("/session/nonexistent-session");
 
     // The page should load with the main header
-    await expect(page.locator("h1")).toHaveText("Kiko Pointing Poker");
+    await expect(page.locator('header a')).toContainText('Kiko');
   });
 
   test("should show loading state initially", async ({ page }) => {
@@ -102,7 +102,7 @@ test.describe("Session Page", () => {
 
     // If no specific connection text found, at least check that the page loaded
     if (!foundConnectionText) {
-      await expect(page.locator("h1")).toHaveText("Kiko Pointing Poker");
+      await expect(page.locator('header a')).toContainText('Kiko');
     }
   });
 

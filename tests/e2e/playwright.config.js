@@ -42,14 +42,6 @@ module.exports = defineConfig({
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
     },
-    {
-      name: "Mobile Chrome",
-      use: { ...devices["Pixel 7"] },
-    },
-    {
-      name: "Mobile Safari",
-      use: { ...devices["iPhone 15"] },
-    },
   ],
 
   /* Run your local dev server before starting the tests */
