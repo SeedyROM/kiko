@@ -87,7 +87,7 @@ async fn setup_subscription(
     conn_state.session_id = Some(session_id.clone());
 
     // Subscribe to the session and get the notifier
-    let notifier = state.pub_sub.subscribe(session_id.clone()).await;
+    let notifier = state.pub_sub.subscribe(session_id.clone());
 
     // Create a channel for sending messages to the WebSocket
     let (outbound_tx, rx) = mpsc::unbounded_channel::<String>();
@@ -109,7 +109,7 @@ async fn setup_subscription(
                 // Create the next notification listener BEFORE processing the current message
                 notified = notifier.notified();
 
-                if let Some(msg) = state.pub_sub.get_event(&session_id).await {
+                if let Some(msg) = state.pub_sub.get_event(&session_id) {
                     match serde_json::to_string(&*msg) {
                         Ok(json) => {
                             log::debug!("Sending message to WebSocket: {}", json);
@@ -178,7 +178,7 @@ async fn handle_join_session(
 
     // Broadcast the updated session to all subscribers
     let update_message = SessionMessage::SessionUpdate(session);
-    state.pub_sub.publish(session_id, update_message).await;
+    state.pub_sub.publish(session_id, update_message);
 
     Ok(WebSocketResponse::None)
 }
@@ -235,7 +235,7 @@ async fn handle_remove_participant(
 
     // Broadcast the updated session to all subscribers
     let update_message = SessionMessage::SessionUpdate(session);
-    state.pub_sub.publish(session_id, update_message).await;
+    state.pub_sub.publish(session_id, update_message);
 
     Ok(WebSocketResponse::None)
 }
@@ -278,7 +278,7 @@ async fn handle_point_session(
 
     // Broadcast the updated session to all subscribers
     let update_message = SessionMessage::SessionUpdate(session);
-    state.pub_sub.publish(session_id, update_message).await;
+    state.pub_sub.publish(session_id, update_message);
 
     Ok(WebSocketResponse::None)
 }
@@ -314,7 +314,7 @@ async fn handle_set_topic(
 
     // Broadcast the updated session to all subscribers
     let update_message = SessionMessage::SessionUpdate(session);
-    state.pub_sub.publish(session_id, update_message).await;
+    state.pub_sub.publish(session_id, update_message);
 
     Ok(WebSocketResponse::None)
 }
@@ -349,7 +349,7 @@ async fn handle_clear_points(
 
     // Broadcast the updated session to all subscribers
     let update_message = SessionMessage::SessionUpdate(session);
-    state.pub_sub.publish(session_id, update_message).await;
+    state.pub_sub.publish(session_id, update_message);
 
     Ok(WebSocketResponse::None)
 }
@@ -383,7 +383,7 @@ async fn handle_toggle_hide_points(
 
     // Broadcast the updated session to all subscribers
     let update_message = SessionMessage::SessionUpdate(session);
-    state.pub_sub.publish(session_id, update_message).await;
+    state.pub_sub.publish(session_id, update_message);
 
     Ok(WebSocketResponse::None)
 }
@@ -576,10 +576,7 @@ async fn cleanup_connection(conn_state: &mut ConnectionState, state: &Arc<crate:
             if (state.sessions.update(session_id, &session).await).is_ok() {
                 // Broadcast the updated session to all remaining subscribers
                 let update_message = SessionMessage::SessionUpdate(session);
-                state
-                    .pub_sub
-                    .publish(session_id.clone(), update_message)
-                    .await;
+                state.pub_sub.publish(session_id.clone(), update_message);
             }
         }
     }

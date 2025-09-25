@@ -6,13 +6,13 @@ use kiko::{data::SessionMessage, id::SessionId};
 use kiko_backend::messaging::PubSub;
 
 fn bench_pubsub_subscribe(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     c.bench_function("pubsub_subscribe_single", |b| {
         b.to_async(tokio::runtime::Runtime::new().unwrap())
             .iter(|| async {
                 let session_id = SessionId::new();
-                black_box(pubsub.subscribe(session_id).await)
+                black_box(pubsub.subscribe(session_id))
             });
     });
 
@@ -30,7 +30,7 @@ fn bench_pubsub_subscribe(c: &mut Criterion) {
                                 let pubsub = pubsub.clone();
                                 async move {
                                     let session_id = SessionId::new();
-                                    pubsub.subscribe(session_id).await
+                                    pubsub.subscribe(session_id)
                                 }
                             })
                             .collect();
@@ -44,7 +44,7 @@ fn bench_pubsub_subscribe(c: &mut Criterion) {
 }
 
 fn bench_pubsub_publish(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     let session_id = SessionId::new();
     let message = SessionMessage::CreateSession(kiko::data::CreateSession {
@@ -55,13 +55,13 @@ fn bench_pubsub_publish(c: &mut Criterion) {
     // Setup subscription first
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let _notifier = pubsub.subscribe(session_id.clone()).await;
+        let _notifier = pubsub.subscribe(session_id.clone());
     });
 
     c.bench_function("pubsub_publish_single", |b| {
         b.to_async(tokio::runtime::Runtime::new().unwrap())
             .iter(|| async {
-                pubsub.publish(session_id.clone(), message.clone()).await;
+                pubsub.publish(session_id.clone(), message.clone());
             });
     });
 
@@ -75,7 +75,7 @@ fn bench_pubsub_publish(c: &mut Criterion) {
                 b.to_async(tokio::runtime::Runtime::new().unwrap())
                     .iter(|| async {
                         for _ in 0..message_count {
-                            pubsub.publish(session_id.clone(), message.clone()).await;
+                            pubsub.publish(session_id.clone(), message.clone());
                         }
                     });
             },
@@ -85,7 +85,7 @@ fn bench_pubsub_publish(c: &mut Criterion) {
 }
 
 fn bench_pubsub_consume_events(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     let session_id = SessionId::new();
     let message = SessionMessage::CreateSession(kiko::data::CreateSession {
@@ -96,13 +96,13 @@ fn bench_pubsub_consume_events(c: &mut Criterion) {
     // Setup subscription first
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let _notifier = pubsub.subscribe(session_id.clone()).await;
-        pubsub.publish(session_id.clone(), message).await;
+        let _notifier = pubsub.subscribe(session_id.clone());
+        pubsub.publish(session_id.clone(), message);
     });
 
     c.bench_function("pubsub_get_event", |b| {
         b.to_async(tokio::runtime::Runtime::new().unwrap())
-            .iter(|| async { black_box(pubsub.get_event(&session_id).await) });
+            .iter(|| async { black_box(pubsub.get_event(&session_id)) });
     });
 
     let mut group = c.benchmark_group("pubsub_consume_event_cycle");
@@ -119,8 +119,8 @@ fn bench_pubsub_consume_events(c: &mut Criterion) {
                                 name: format!("Benchmark Session {i}"),
                                 duration: Duration::from_secs(3600),
                             });
-                            pubsub.publish(session_id.clone(), msg).await;
-                            black_box(pubsub.consume_event(&session_id).await);
+                            pubsub.publish(session_id.clone(), msg);
+                            black_box(pubsub.consume_event(&session_id));
                         }
                     });
             },
@@ -130,7 +130,7 @@ fn bench_pubsub_consume_events(c: &mut Criterion) {
 }
 
 fn bench_pubsub_concurrent_operations(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     let mut group = c.benchmark_group("pubsub_concurrent_pub_sub");
     for session_count in [10, 50, 100].iter() {
@@ -146,7 +146,7 @@ fn bench_pubsub_concurrent_operations(c: &mut Criterion) {
                                 let pubsub = pubsub.clone();
                                 async move {
                                     let session_id = SessionId::new();
-                                    let _notifier = pubsub.subscribe(session_id.clone()).await;
+                                    let _notifier = pubsub.subscribe(session_id.clone());
 
                                     let message =
                                         SessionMessage::CreateSession(kiko::data::CreateSession {
@@ -154,8 +154,8 @@ fn bench_pubsub_concurrent_operations(c: &mut Criterion) {
                                             duration: Duration::from_secs(3600),
                                         });
 
-                                    pubsub.publish(session_id.clone(), message).await;
-                                    pubsub.consume_event(&session_id).await
+                                    pubsub.publish(session_id.clone(), message);
+                                    pubsub.consume_event(&session_id)
                                 }
                             })
                             .collect();
@@ -169,7 +169,7 @@ fn bench_pubsub_concurrent_operations(c: &mut Criterion) {
 }
 
 fn bench_pubsub_memory_efficiency(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     c.bench_function("pubsub_session_cleanup", |b| {
         b.to_async(tokio::runtime::Runtime::new().unwrap())
@@ -177,16 +177,16 @@ fn bench_pubsub_memory_efficiency(c: &mut Criterion) {
                 let session_ids: Vec<SessionId> = (0..100).map(|_| SessionId::new()).collect();
 
                 for session_id in &session_ids {
-                    let _notifier = pubsub.subscribe(session_id.clone()).await;
+                    let _notifier = pubsub.subscribe(session_id.clone());
                     let message = SessionMessage::CreateSession(kiko::data::CreateSession {
                         name: "Cleanup Test Session".to_string(),
                         duration: Duration::from_secs(3600),
                     });
-                    pubsub.publish(session_id.clone(), message).await;
+                    pubsub.publish(session_id.clone(), message);
                 }
 
                 for session_id in &session_ids {
-                    pubsub.cleanup_session(session_id).await;
+                    pubsub.cleanup_session(session_id);
                 }
             });
     });
