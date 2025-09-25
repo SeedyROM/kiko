@@ -41,12 +41,19 @@
 //! # }
 //! ```
 
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 
 use arc_swap::ArcSwap;
 use dashmap::DashMap;
-use kiko::{data::SessionMessage, id::SessionId};
 use tokio::sync::Notify;
+
+/// Trait bounds for session identifier types.
+pub trait IdType: Clone + Eq + Hash + Send + Sync {}
+impl<T> IdType for T where T: Clone + Eq + Hash + Send + Sync {}
+
+/// Trait bounds for message types used in the PubSub system.
+pub trait MessageType: Clone + Send + Sync {}
+impl<T> MessageType for T where T: Clone + Send + Sync {}
 
 /// Event identifier type for tracking message sequence.
 ///
@@ -74,22 +81,31 @@ pub type EventId = u64;
 /// - **Publish**: O(1) for message update + O(1) for lock-free notifier lookup
 /// - **Get/Consume**: O(1) lock-free read + O(1) for lock-free DashMap access
 /// - **Cleanup**: O(1) for both notifier and event removal
-pub struct PubSub {
+pub struct PubSub<Id, T>
+where
+    Id: IdType,
+    T: MessageType,
+{
     /// Per-session notification handles for waking up subscribers.
-    notifiers: DashMap<SessionId, Arc<Notify>>,
+    notifiers: DashMap<Id, Arc<Notify>>,
     /// Per-session message storage using lock-free atomic swaps.
-    events: DashMap<SessionId, ArcSwap<SessionMessage>>,
+    events: DashMap<Id, ArcSwap<T>>,
 }
 
-impl PubSub {
+impl<Id, T> PubSub<Id, T>
+where
+    Id: IdType,
+    T: MessageType,
+{
     /// Creates a new empty PubSub instance.
     ///
     /// # Examples
     ///
     /// ```
     /// use kiko_backend::messaging::PubSub;
+    /// use kiko::{data::SessionMessage, id::SessionId};
     ///
-    /// let pubsub = PubSub::new();
+    /// let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
     /// ```
     pub fn new() -> Self {
         Self {
@@ -128,9 +144,9 @@ impl PubSub {
     /// notifier.notified().await;
     /// # }
     /// ```
-    pub fn subscribe(&self, session_id: SessionId) -> Arc<Notify> {
+    pub fn subscribe(&self, id: Id) -> Arc<Notify> {
         self.notifiers
-            .entry(session_id)
+            .entry(id)
             .or_insert_with(|| Arc::new(Notify::new()))
             .clone()
     }
@@ -172,14 +188,13 @@ impl PubSub {
     /// pubsub.publish(session_id, message);
     /// # }
     /// ```
-    pub fn publish(&self, session_id: SessionId, message: SessionMessage) {
+    pub fn publish(&self, id: Id, message: T) {
         // Get the notifier first
-        let notifier = self.notifiers.get(&session_id).map(|entry| entry.clone());
+        let notifier = self.notifiers.get(&id).map(|entry| entry.clone());
 
         if let Some(notifier) = notifier {
             // Store the message - no locks needed with DashMap
-            self.events
-                .insert(session_id, ArcSwap::from_pointee(message));
+            self.events.insert(id, ArcSwap::from_pointee(message));
 
             // Now notify waiters
             notifier.notify_waiters();
@@ -204,19 +219,19 @@ impl PubSub {
     ///
     /// ```
     /// use kiko_backend::messaging::PubSub;
-    /// use kiko::id::SessionId;
+    /// use kiko::{data::SessionMessage, id::SessionId};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let pubsub = PubSub::new();
+    /// let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
     /// let session_id = SessionId::new();
     /// if let Some(message) = pubsub.get_event(&session_id) {
     ///     // Process message, but it remains in the queue
     /// }
     /// # }
     /// ```
-    pub fn get_event(&self, session_id: &SessionId) -> Option<Arc<SessionMessage>> {
-        self.events.get(session_id).map(|entry| entry.load_full())
+    pub fn get_event(&self, id: &Id) -> Option<Arc<T>> {
+        self.events.get(id).map(|entry| entry.load_full())
     }
 
     /// Consumes and removes the current message for a session.
@@ -238,20 +253,20 @@ impl PubSub {
     ///
     /// ```
     /// use kiko_backend::messaging::PubSub;
-    /// use kiko::id::SessionId;
+    /// use kiko::{data::SessionMessage, id::SessionId};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let pubsub = PubSub::new();
+    /// let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
     /// let session_id = SessionId::new();
     /// if let Some(message) = pubsub.consume_event(&session_id) {
     ///     // Process message - it's no longer in the queue
     /// }
     /// # }
     /// ```
-    pub fn consume_event(&self, session_id: &SessionId) -> Option<Arc<SessionMessage>> {
+    pub fn consume_event(&self, id: &Id) -> Option<Arc<T>> {
         self.events
-            .remove(session_id)
+            .remove(id)
             .map(|(_, arc_swap)| arc_swap.load_full())
     }
 
@@ -269,18 +284,18 @@ impl PubSub {
     ///
     /// ```
     /// use kiko_backend::messaging::PubSub;
-    /// use kiko::id::SessionId;
+    /// use kiko::{data::SessionMessage, id::SessionId};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let pubsub = PubSub::new();
+    /// let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
     /// let session_id = SessionId::new();
     /// pubsub.cleanup_session(&session_id);
     /// # }
     /// ```
-    pub fn cleanup_session(&self, session_id: &SessionId) {
-        self.events.remove(session_id);
-        self.notifiers.remove(session_id);
+    pub fn cleanup_session(&self, id: &Id) {
+        self.events.remove(id);
+        self.notifiers.remove(id);
     }
 
     /// Returns the number of active sessions with subscribers.
@@ -296,11 +311,11 @@ impl PubSub {
     ///
     /// ```
     /// use kiko_backend::messaging::PubSub;
-    /// use kiko::id::SessionId;
+    /// use kiko::{data::SessionMessage, id::SessionId};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let pubsub = PubSub::new();
+    /// let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
     /// assert_eq!(pubsub.session_count(), 0);
     /// let session_id = SessionId::new();
     /// let _notifier = pubsub.subscribe(session_id);
@@ -329,11 +344,11 @@ impl PubSub {
     ///
     /// ```
     /// use kiko_backend::messaging::PubSub;
-    /// use kiko::id::SessionId;
+    /// use kiko::{data::SessionMessage, id::SessionId};
     ///
     /// # #[tokio::main]
     /// # async fn main() {
-    /// let pubsub = PubSub::new();
+    /// let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
     /// let session_id = SessionId::new();
     /// if pubsub.has_event(&session_id) {
     ///     let message = pubsub.consume_event(&session_id);
@@ -341,12 +356,16 @@ impl PubSub {
     /// }
     /// # }
     /// ```
-    pub fn has_event(&self, session_id: &SessionId) -> bool {
-        self.events.contains_key(session_id)
+    pub fn has_event(&self, id: &Id) -> bool {
+        self.events.contains_key(id)
     }
 }
 
-impl Default for PubSub {
+impl<Id, T> Default for PubSub<Id, T>
+where
+    Id: IdType,
+    T: MessageType,
+{
     /// Creates a default PubSub instance.
     ///
     /// Equivalent to calling [`PubSub::new()`].
@@ -365,7 +384,7 @@ mod tests {
 
     #[tokio::test]
     async fn consume_event_removes_message() {
-        let pubsub = PubSub::new();
+        let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
         let session_id = SessionId::new();
 
         let _notifier = pubsub.subscribe(session_id.clone());
@@ -392,7 +411,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_event_vs_consume_event() {
-        let pubsub = PubSub::new();
+        let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
         let session_id = SessionId::new();
 
         let _notifier = pubsub.subscribe(session_id.clone());
@@ -422,7 +441,7 @@ mod tests {
 
     #[tokio::test]
     async fn cleanup_session() {
-        let pubsub = PubSub::new();
+        let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
         let session_id = SessionId::new();
 
         let _notifier = pubsub.subscribe(session_id.clone());
@@ -451,7 +470,7 @@ mod tests {
 
     #[tokio::test]
     async fn memory_leak_prevention() {
-        let pubsub = PubSub::new();
+        let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
         let mut session_ids = Vec::new();
 
         // Create many sessions
@@ -489,7 +508,7 @@ mod tests {
 
     #[tokio::test]
     async fn has_event_utility() {
-        let pubsub = PubSub::new();
+        let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
         let session_id = SessionId::new();
 
         let _notifier = pubsub.subscribe(session_id.clone());
@@ -516,7 +535,7 @@ mod tests {
 
     #[tokio::test]
     async fn correct_pubsub_behavior_subscribe_after_publish() {
-        let pubsub = PubSub::new();
+        let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
         let session_id = SessionId::new();
 
         // Publish first (no subscribers yet) - this is correct behavior
@@ -598,7 +617,7 @@ mod tests {
     // Keep your original working tests too
     #[tokio::test]
     async fn multiple_subscribers() {
-        let pubsub = PubSub::new();
+        let pubsub: PubSub<SessionId, SessionMessage> = PubSub::new();
         let session_id = SessionId::new();
         let _notifier1 = pubsub.subscribe(session_id.clone());
         let _notifier2 = pubsub.subscribe(session_id.clone());

@@ -6,7 +6,7 @@ use kiko::{data::SessionMessage, id::SessionId};
 use kiko_backend::messaging::PubSub;
 
 fn bench_pubsub_subscribe(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     c.bench_function("pubsub_subscribe_single", |b| {
         b.to_async(tokio::runtime::Runtime::new().unwrap())
@@ -44,7 +44,7 @@ fn bench_pubsub_subscribe(c: &mut Criterion) {
 }
 
 fn bench_pubsub_publish(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     let session_id = SessionId::new();
     let message = SessionMessage::CreateSession(kiko::data::CreateSession {
@@ -85,7 +85,7 @@ fn bench_pubsub_publish(c: &mut Criterion) {
 }
 
 fn bench_pubsub_consume_events(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     let session_id = SessionId::new();
     let message = SessionMessage::CreateSession(kiko::data::CreateSession {
@@ -130,7 +130,7 @@ fn bench_pubsub_consume_events(c: &mut Criterion) {
 }
 
 fn bench_pubsub_concurrent_operations(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     let mut group = c.benchmark_group("pubsub_concurrent_pub_sub");
     for session_count in [10, 50, 100].iter() {
@@ -169,7 +169,7 @@ fn bench_pubsub_concurrent_operations(c: &mut Criterion) {
 }
 
 fn bench_pubsub_memory_efficiency(c: &mut Criterion) {
-    let pubsub = Arc::new(PubSub::new());
+    let pubsub = Arc::new(PubSub::<SessionId, SessionMessage>::new());
 
     c.bench_function("pubsub_session_cleanup", |b| {
         b.to_async(tokio::runtime::Runtime::new().unwrap())
