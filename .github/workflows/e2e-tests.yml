@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [] # [ main, develop ] # disable for now, this is broken
+    branches: [main, develop]
   pull_request:
-    branches: [] # [ main, develop ] # disable for now, this is broken
+    branches: [main, develop]
 
 jobs:
   e2e-tests:
