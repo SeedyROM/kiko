@@ -27,7 +27,12 @@ impl Api {
 
 /// Create a new instance of the API client with the default base URL.
 pub fn create() -> Api {
-    let base_url = std::env::var("API_BASE_URL")
-        .unwrap_or_else(|_| "http://localhost:3030/api/v1".to_string());
+    // For WASM, we need to construct the URL dynamically from the current location
+    let base_url = if web_sys::window().is_some() {
+        // Use relative path that will be proxied by nginx
+        "/api/v1".to_string()
+    } else {
+        "http://localhost:3030/api/v1".to_string()
+    };
     Api::new(&base_url)
 }

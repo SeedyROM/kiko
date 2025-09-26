@@ -16,9 +16,6 @@ services:
     image: sleazyrom/kiko-frontend:latest
     ports:
       - "80:8080"
-    environment:
-      - API_BASE_URL=/api/v1
-      - WS_URL=/api/v1/ws
     deploy:
       resources:
         limits:
