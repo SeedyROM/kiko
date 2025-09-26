@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Build and push Docker images for Kiko
+# Usage: ./bin/build-and-push [username]
+
+set -e
+
+DOCKER_USERNAME=${1:-sleazyrom}
+
+echo "🔨 Building and pushing Docker images for $DOCKER_USERNAME..."
+
+# Build images
+./bin/build-docker $DOCKER_USERNAME
+
+# Push images
+./bin/push-docker $DOCKER_USERNAME
+
+echo "🎉 All done! Images built and pushed successfully."
