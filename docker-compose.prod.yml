@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   backend:
+    image: sleazyrom/kiko-backend:latest
     environment:
       - RUST_LOG=warn
     deploy:
@@ -12,6 +13,7 @@ services:
           memory: 256M
 
   frontend:
+    image: sleazyrom/kiko-frontend:latest
     ports:
       - "80:8080"
     deploy:
