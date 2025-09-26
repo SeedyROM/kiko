@@ -7,8 +7,8 @@ on:
     branches: [main, develop]
 
 jobs:
-  e2e-tests:
-    timeout-minutes: 60
+  build:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

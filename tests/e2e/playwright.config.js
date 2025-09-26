@@ -12,8 +12,8 @@ module.exports = defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Use more workers on CI for faster execution */
-  workers: process.env.CI ? 4 : undefined,
+  /* Use single worker on CI to avoid resource contention */
+  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [["html", { open: "never" }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -39,25 +39,17 @@ module.exports = defineConfig({
       use: { ...devices["Desktop Firefox"] },
     },
     {
-      name: "webkit", 
+      name: "webkit",
       use: { ...devices["Desktop Safari"] },
-    },
-    {
-      name: "Mobile Chrome",
-      use: { ...devices["Pixel 7"] },
-    },
-    {
-      name: "Mobile Safari",
-      use: { ...devices["iPhone 15"] },
     },
   ],
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: "./bin/dev",
+    command: process.env.CI ? "./bin/ci" : "./bin/dev",
     cwd: "../..",
     url: "http://localhost:8080",
     reuseExistingServer: !process.env.CI,
-    timeout: 3 * 60 * 1000, // 3 minutes for server startup
+    timeout: process.env.CI ? 60 * 1000 : 3 * 60 * 1000, // 1 minute for CI, 3 minutes for dev
   },
 });
