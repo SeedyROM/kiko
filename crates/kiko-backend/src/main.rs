@@ -38,8 +38,14 @@ async fn main() -> Result<(), Report> {
         .unwrap_or_else(|_| "3030".to_string())
         .parse::<u16>()
         .unwrap_or(3030);
-    let ipv6 = SocketAddr::from(([0, 0, 0, 0, 0, 0, 0, 0], port));
-    let listener = TcpListener::bind(ipv6).await?;
+
+    // Bind to localhost only in production for security, all interfaces in dev
+    let bind_addr = std::env::var("KIKO_BACKEND_BIND").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let socket_addr: SocketAddr = format!("{bind_addr}:{port}")
+        .parse()
+        .expect("Invalid bind address");
+
+    let listener = TcpListener::bind(socket_addr).await?;
     log::info!("Starting server on http://{}", listener.local_addr()?);
     log::info!("Press Ctrl+C to stop the server");
 
