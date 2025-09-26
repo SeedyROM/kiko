@@ -73,9 +73,33 @@ docker-compose build frontend
 docker-compose build backend
 ```
 
+#### Building and Pushing Images
+
+Use the convenient build scripts to create and push Docker images:
+
+```bash
+# Build images locally (defaults to 'sleazyrom' username)
+./bin/build-docker [username]
+
+# Push images to Docker Hub
+./bin/push-docker [username]
+
+# Build and push in one command
+./bin/build-and-push [username]
+```
+
+Examples:
+```bash
+# Build with custom username
+./bin/build-docker myusername
+
+# Build and push with default username
+./bin/build-and-push
+```
+
 #### Docker Architecture
 - **Multi-stage builds**: Optimized Dockerfiles for both services
 - **Frontend**: Rust 1.88 builder → Alpine runtime with nginx and brotli compression
-- **Backend**: Rust 1.88 builder → Debian slim runtime  
+- **Backend**: Rust 1.88 builder → Debian slim runtime
 - **Compression**: Brotli compression provides 70-85% size reduction for frontend assets
 - **Security**: Non-root containers with health checks

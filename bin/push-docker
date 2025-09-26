@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Push Docker images for Kiko
+# Usage: ./bin/push-docker [username]
+
+set -e
+
+DOCKER_USERNAME=${1:-sleazyrom}
+
+echo "🚀 Pushing Docker images for $DOCKER_USERNAME..."
+
+# Push backend image
+echo "📦 Pushing backend image..."
+docker push $DOCKER_USERNAME/kiko-backend:latest
+
+# Push frontend image
+echo "🎨 Pushing frontend image..."
+docker push $DOCKER_USERNAME/kiko-frontend:latest
+
+echo "✅ Push complete!"
+echo ""
+echo "Images pushed:"
+echo "  $DOCKER_USERNAME/kiko-backend:latest"
+echo "  $DOCKER_USERNAME/kiko-frontend:latest"

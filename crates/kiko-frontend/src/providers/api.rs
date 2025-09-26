@@ -27,5 +27,12 @@ impl Api {
 
 /// Create a new instance of the API client with the default base URL.
 pub fn create() -> Api {
-    Api::new("http://localhost:3030/api/v1") // or your base URL
+    let base_url = if cfg!(feature = "production") {
+        // Production: use relative path that will be proxied by nginx
+        "/api/v1".to_string()
+    } else {
+        // Development: use localhost backend directly
+        "http://localhost:3030/api/v1".to_string()
+    };
+    Api::new(&base_url)
 }

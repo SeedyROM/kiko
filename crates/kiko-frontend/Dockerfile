@@ -44,7 +44,7 @@ WORKDIR /app/crates/kiko-frontend
 # Ensure TailwindCSS is available for npx
 RUN npm init -y && npm install @tailwindcss/cli --save-dev
 
-RUN trunk build --release
+RUN trunk build --release --features production
 
 # Runtime stage with nginx and brotli
 FROM alpine:latest as runtime

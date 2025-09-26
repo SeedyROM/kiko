@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Build and push Docker images for Kiko
+# Usage: ./bin/build-docker [username]
+
+set -e
+
+DOCKER_USERNAME=${1:-sleazyrom}
+
+echo "🔨 Building Docker images for $DOCKER_USERNAME..."
+
+# Build backend image
+echo "📦 Building backend image..."
+docker build -t $DOCKER_USERNAME/kiko-backend:latest -f crates/kiko-backend/Dockerfile .
+
+# Build frontend image
+echo "🎨 Building frontend image..."
+docker build -t $DOCKER_USERNAME/kiko-frontend:latest -f crates/kiko-frontend/Dockerfile .
+
+echo "✅ Build complete!"
+echo ""
+echo "To push images to Docker Hub:"
+echo "  docker push $DOCKER_USERNAME/kiko-backend:latest"
+echo "  docker push $DOCKER_USERNAME/kiko-frontend:latest"
+echo ""
+echo "Or run: ./bin/push-docker $DOCKER_USERNAME"

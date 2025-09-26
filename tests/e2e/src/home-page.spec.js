@@ -6,7 +6,8 @@ test.describe('Home Page', () => {
   });
 
   test('should display the main heading', async ({ page }) => {
-    await expect(page.locator('h1')).toHaveText('Kiko Pointing Poker');
+    await expect(page.locator('header a')).toContainText('Kiko');
+    await expect(page.locator('header a')).toContainText('🫵');
   });
 
   test('should display create session form', async ({ page }) => {

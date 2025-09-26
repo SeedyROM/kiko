@@ -5,6 +5,8 @@ services:
     image: sleazyrom/kiko-backend:latest
     environment:
       - RUST_LOG=warn
+      - KIKO_BACKEND_BIND=0.0.0.0  # Bind to all interfaces within container
+    ports: []  # Remove external port exposure - only accessible via nginx proxy
     deploy:
       resources:
         limits:
