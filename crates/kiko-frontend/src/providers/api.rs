@@ -27,11 +27,11 @@ impl Api {
 
 /// Create a new instance of the API client with the default base URL.
 pub fn create() -> Api {
-    // For WASM, we need to construct the URL dynamically from the current location
-    let base_url = if web_sys::window().is_some() {
-        // Use relative path that will be proxied by nginx
+    let base_url = if cfg!(feature = "production") {
+        // Production: use relative path that will be proxied by nginx
         "/api/v1".to_string()
     } else {
+        // Development: use localhost backend directly
         "http://localhost:3030/api/v1".to_string()
     };
     Api::new(&base_url)

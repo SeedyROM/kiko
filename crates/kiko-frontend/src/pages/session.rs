@@ -34,13 +34,23 @@ fn session_page_inner(props: &SessionProps) -> Html {
     let is_joined = use_state(|| false);
     let is_subscribed = use_state(|| false);
 
-    // WebSocket connection - construct URL from current location
-    let ws_url = if let Some(window) = web_sys::window() {
-        let location = window.location();
-        let host = location.host().unwrap_or_else(|_| "localhost:3030".to_string());
-        let protocol = if location.protocol().unwrap_or_default() == "https:" { "wss" } else { "ws" };
-        format!("{protocol}://{host}/api/v1/ws")
+    // WebSocket connection
+    let ws_url = if cfg!(feature = "production") {
+        // Production: construct URL from current location for proxy
+        if let Some(window) = web_sys::window() {
+            let location = window.location();
+            let host = location.host().unwrap_or_else(|_| "localhost".to_string());
+            let protocol = if location.protocol().unwrap_or_default() == "https:" {
+                "wss"
+            } else {
+                "ws"
+            };
+            format!("{protocol}://{host}/api/v1/ws")
+        } else {
+            "ws://localhost/api/v1/ws".to_string()
+        }
     } else {
+        // Development: use localhost backend directly
         "ws://localhost:3030/api/v1/ws".to_string()
     };
     let ws = use_websocket(&ws_url);
