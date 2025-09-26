@@ -27,5 +27,7 @@ impl Api {
 
 /// Create a new instance of the API client with the default base URL.
 pub fn create() -> Api {
-    Api::new("http://localhost:3030/api/v1") // or your base URL
+    let base_url = std::env::var("API_BASE_URL")
+        .unwrap_or_else(|_| "http://localhost:3030/api/v1".to_string());
+    Api::new(&base_url)
 }

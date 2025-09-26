@@ -35,7 +35,26 @@ fn session_page_inner(props: &SessionProps) -> Html {
     let is_subscribed = use_state(|| false);
 
     // WebSocket connection
-    let ws = use_websocket("ws://localhost:3030/api/v1/ws");
+    let ws_url = {
+        let ws_path =
+            std::env::var("WS_URL").unwrap_or_else(|_| "ws://localhost:3030/api/v1/ws".to_string());
+
+        // If it's a relative path, construct full WebSocket URL from current location
+        if ws_path.starts_with("/") {
+            let window = web_sys::window().unwrap();
+            let location = window.location();
+            let host = location.host().unwrap();
+            let protocol = if location.protocol().unwrap() == "https:" {
+                "wss"
+            } else {
+                "ws"
+            };
+            format!("{protocol}://{host}{ws_path}")
+        } else {
+            ws_path
+        }
+    };
+    let ws = use_websocket(&ws_url);
 
     let session_id = props.id.clone();
 
