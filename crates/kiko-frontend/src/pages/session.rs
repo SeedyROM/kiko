@@ -423,7 +423,7 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                                 <div class="ml-3 flex-1">
                                                     <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300">{ "Join as Participant" }</h3>
                                                     <p class="text-sm text-blue-700 dark:text-blue-400 mt-1 mb-4">{ "You're currently observing this session. Enter your name to become an active participant." }</p>
-                                                    <div class="flex items-end space-x-3">
+                                                    <div class="flex flex-col sm:flex-row sm:items-end sm:space-x-4 gap-y-2 sm:gap-y-0">
                                                         <div class="flex-1">
                                                             <label for="participant-name" class="block text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">{ "Your Name" }</label>
                                                             <input

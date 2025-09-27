@@ -190,19 +190,21 @@ pub fn session_view(props: &SessionViewProps) -> Html {
     html! {
         <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-8">
             // Compact Header Bar - Fixed at top
-            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 px-4 py-3 sm:px-6">
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 px-4 py-3 sm:px-6 flex-col">
                 <div class="max-w-7xl mx-auto">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-4">
-                            <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{ session.name() }</h1>
-                            <ConnectionIndicator state={ws_state.clone()} />
+                    <div class="sm:flex items-center justify-between">
+                        <div class="flex items-center space-x-4 justify-between sm:justify-start">
+                            <div class="flex gap-4">
+                                <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{ session.name() }</h1>
+                                <ConnectionIndicator state={ws_state.clone()} />
+                            </div>
                             <span class={format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
                                 if is_active { "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300" } else { "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300" })}>
                                 { if is_active { "Active" } else { "Ended" } }
                             </span>
                         </div>
-                        <div class="flex items-center space-x-3">
-                            <div class="text-right">
+                        <div class="flex items-center space-x-3 md:justify-end justify-between mt-2 sm:mt-0">
+                            <div class="md:text-right">
                                 <div class="text-xs md:text-sm text-gray-600 dark:text-gray-400">{ "Time Remaining" }</div>
                                 <div class={format!("text-md md:text-lg font-semibold {}",
                                     if is_active { "text-green-600 dark:text-green-400" } else { "text-red-600 dark:text-red-400" })}>
@@ -242,7 +244,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                         // Session Details - Compact
                         <div class={CARD_CLASSES}>
                             <h3 class={classes!("text-lg", "font-semibold", "mb-4", TEXT_PRIMARY)}>{ "Session Details" }</h3>
-                            <div class="space-y-3 text-sm flex lg:block gap-x-4 justify-between">
+                            <div class="space-y-3 text-sm sm:flex lg:block gap-x-4 justify-between">
                                 <div>
                                     <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Session ID" }</div>
                                     <div class={classes!("font-mono", "text-xs", "bg-gray-100", "dark:bg-gray-700", "px-2", "py-1", "rounded", TEXT_PRIMARY)}>{ format!("{}", session.id) }</div>
@@ -257,7 +259,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                 </div>
                                 <div>
                                     <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Participants" }</div>
-                                    <div class={classes!("font-semibold", "text-right", "lg:text-left", TEXT_PRIMARY)}>{ session.participants().len() }</div>
+                                    <div class={classes!("font-semibold", "text-left", "sm:text-right", "lg:text-left", TEXT_PRIMARY)}>{ session.participants().len() }</div>
                                 </div>
                             </div>
                             <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
