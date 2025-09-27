@@ -103,3 +103,9 @@ Examples:
 - **Backend**: Rust 1.88 builder → Debian slim runtime
 - **Compression**: Brotli compression provides 70-85% size reduction for frontend assets
 - **Security**: Non-root containers with health checks
+
+### 🚀 Production Deployment
+
+For complete production deployment with SSL/TLS certificates and domain setup:
+
+**See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed production deployment instructions.**

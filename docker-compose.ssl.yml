@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: kiko-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - kiko-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: kiko-certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    command: certonly --webroot --webroot-path=/var/www/html --email admin@kikopointer.com --agree-tos --no-eff-email --force-renewal -d kikopointer.com -d www.kikopointer.com
+    depends_on:
+      - nginx
+
+  frontend:
+    ports: []  # Remove external port exposure - only accessible via nginx proxy
+
+  backend:
+    ports: []  # Remove external port exposure - only accessible via nginx proxy
+
+volumes:
+  certbot-etc:
+  certbot-var:
+  web-root:
+
+networks:
+  kiko-network:
+    external: true

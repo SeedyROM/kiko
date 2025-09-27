@@ -1,6 +1,43 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: kiko-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx-bootstrap.conf:/etc/nginx/nginx-bootstrap.conf:ro
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - kiko-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  certbot:
+    image: certbot/certbot
+    container_name: kiko-certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - nginx
+    profiles:
+      - certbot
+
   backend:
     image: sleazyrom/kiko-backend:latest
     environment:
@@ -16,11 +53,15 @@ services:
 
   frontend:
     image: sleazyrom/kiko-frontend:latest
-    ports:
-      - "80:8080"
+    ports: []  # Remove external port exposure - only accessible via nginx proxy
     deploy:
       resources:
         limits:
           memory: 128M
         reservations:
           memory: 64M
+
+volumes:
+  certbot-etc:
+  certbot-var:
+  web-root:
