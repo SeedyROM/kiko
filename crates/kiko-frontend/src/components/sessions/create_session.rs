@@ -249,8 +249,8 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                         </label>
 
                         // Duration inputs
-                        <div class="flex items-center space-x-2 mb-2">
-                            <div class="flex items-center space-x-1">
+                        <div class="flex items-center space-x-6 mb-2">
+                            <div class="flex items-center space-x-3">
                                 <input
                                     type="number"
                                     min="0"
@@ -264,7 +264,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                                 <span class="text-sm text-gray-600 dark:text-gray-400">{ "hours" }</span>
                             </div>
 
-                            <div class="flex items-center space-x-1">
+                            <div class="flex items-center space-x-2">
                                 <input
                                     type="number"
                                     min="0"
@@ -353,7 +353,7 @@ pub fn create_session(props: &CreateSessionProps) -> Html {
                     }
 
                     // Form Actions
-                    <div class="flex justify-end space-x-3 pt-4">
+                    <div class="flex sm:justify-end space-x-3 pt-4">
                         {
                             if props.on_cancel.is_some() {
                                 html! {

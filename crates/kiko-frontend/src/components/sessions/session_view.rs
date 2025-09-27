@@ -190,19 +190,21 @@ pub fn session_view(props: &SessionViewProps) -> Html {
     html! {
         <div class="min-h-screen bg-gray-50 dark:bg-gray-900 pb-8">
             // Compact Header Bar - Fixed at top
-            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 px-4 py-3 sm:px-6">
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 px-4 py-3 sm:px-6 flex-col">
                 <div class="max-w-7xl mx-auto">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-4">
-                            <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{ session.name() }</h1>
-                            <ConnectionIndicator state={ws_state.clone()} />
+                    <div class="sm:flex items-center justify-between">
+                        <div class="flex items-center space-x-4 justify-between sm:justify-start">
+                            <div class="flex gap-4">
+                                <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{ session.name() }</h1>
+                                <ConnectionIndicator state={ws_state.clone()} />
+                            </div>
                             <span class={format!("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {}",
                                 if is_active { "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300" } else { "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300" })}>
                                 { if is_active { "Active" } else { "Ended" } }
                             </span>
                         </div>
-                        <div class="flex items-center space-x-3">
-                            <div class="text-right">
+                        <div class="flex items-center space-x-3 md:justify-end justify-between mt-2 sm:mt-0">
+                            <div class="md:text-right">
                                 <div class="text-xs md:text-sm text-gray-600 dark:text-gray-400">{ "Time Remaining" }</div>
                                 <div class={format!("text-md md:text-lg font-semibold {}",
                                     if is_active { "text-green-600 dark:text-green-400" } else { "text-red-600 dark:text-red-400" })}>
@@ -234,15 +236,15 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
             <div class="pt-6 px-4 md:px-6">
                 // Main Content Layout - 2 Column on Desktop
-                <div class="mx-auto max-w-7xl flex flex-col-reverse lg:grid lg:grid-cols-4 gap-6">
+                <div class="mx-auto max-w-7xl flex flex-col-reverse lg:grid lg:grid-cols-4 gap-4 sm:gap-6">
                     // Left Column - Session Controls & Topic
                     <div class="lg:col-span-1 space-y-6">
 
 
                         // Session Details - Compact
                         <div class={CARD_CLASSES}>
-                            <h3 class={classes!("text-lg", "font-semibold", "mb-4", TEXT_PRIMARY)}>{ "Session Details" }</h3>
-                            <div class="space-y-3 text-sm flex lg:block gap-x-4 justify-between">
+                            <h3 class={classes!("text-lg", "font-semibold", "mb-4", "leading-none", TEXT_PRIMARY)}>{ "Session Details" }</h3>
+                            <div class="space-y-3 text-sm sm:flex lg:block gap-x-4 justify-between">
                                 <div>
                                     <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Session ID" }</div>
                                     <div class={classes!("font-mono", "text-xs", "bg-gray-100", "dark:bg-gray-700", "px-2", "py-1", "rounded", TEXT_PRIMARY)}>{ format!("{}", session.id) }</div>
@@ -257,7 +259,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                 </div>
                                 <div>
                                     <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Participants" }</div>
-                                    <div class={classes!("font-semibold", "text-right", "lg:text-left", TEXT_PRIMARY)}>{ session.participants().len() }</div>
+                                    <div class={classes!("font-semibold", "text-left", "sm:text-right", "lg:text-left", TEXT_PRIMARY)}>{ session.participants().len() }</div>
                                 </div>
                             </div>
                             <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
@@ -269,12 +271,12 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                     // Right Column - Participants & Voting
                     <div class="lg:col-span-3 space-y-6">
                         // Topic Section - Always show if there are participants
-                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 lg:mb-6 shadow-sm">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 leading-none">{ "Story Topic" }</h3>
                             {
                                 if !session.current_topic().is_empty() {
                                     html! {
-                                        <div class={format!("bg-blue-50 dark:bg-blue-900/20 {} border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-4 relative group",
+                                        <div class={format!("bg-blue-50 dark:bg-blue-900/20 {} border border-blue-200 dark:border-blue-800 p-4 rounded-lg relative group",
                                             if props.is_joined { "flex justify-between" } else { "" })}>
                                             <p class="text-blue-900 dark:text-blue-300 font-medium pr-8">{ session.current_topic() }</p>
                                             {
@@ -304,7 +306,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                     }
                                 } else {
                                     html! {
-                                        <div class={format!("bg-gray-50 dark:bg-gray-700 {} border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-4 relative group",
+                                        <div class={format!("bg-gray-50 dark:bg-gray-700 {} border border-gray-200 dark:border-gray-600 p-4 rounded-lg relative group",
                                             if props.is_joined { "flex justify-between" } else { "" })}>
                                             <p class="text-gray-500 dark:text-gray-400 italic pr-8">{ "No topic set yet" }</p>
                                             {
@@ -453,7 +455,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
                                 html! {
                                     <div class={CARD_CLASSES}>
-                                        <div class="flex items-center justify-between mb-6">
+                                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center justify-between mb-6">
                                             <h3 class={classes!("text-xl", "font-semibold", TEXT_PRIMARY)}>
                                                 { if props.is_joined { "Choose Your Estimate" } else { "Voting" } }
                                             </h3>
@@ -539,7 +541,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                             if !session.participants().is_empty() {
                                                 html! {
                                                     <div class={if props.is_joined { "border-t pt-6" } else { "" }}>
-                                                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 leading-none">
                                                             {
                                                                 if props.is_joined {
                                                                     "Current Estimates"

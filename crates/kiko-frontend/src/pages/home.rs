@@ -5,7 +5,7 @@ use crate::components::CreateSession;
 #[function_component(HomePage)]
 pub fn home_page() -> Html {
     html! {
-        <div class="min-h-screen p-8">
+        <div class="min-h-screen p-4">
             <div class="max-w-7xl mx-auto">
                 // Create Session Section
                 <div class="mb-6">
