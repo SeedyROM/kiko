@@ -455,7 +455,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
                                 html! {
                                     <div class={CARD_CLASSES}>
-                                        <div class="flex items-center justify-between mb-6">
+                                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center justify-between mb-6">
                                             <h3 class={classes!("text-xl", "font-semibold", TEXT_PRIMARY)}>
                                                 { if props.is_joined { "Choose Your Estimate" } else { "Voting" } }
                                             </h3>
