@@ -236,7 +236,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
             <div class="pt-6 px-4 md:px-6">
                 // Main Content Layout - 2 Column on Desktop
-                <div class="mx-auto max-w-7xl flex flex-col-reverse lg:grid lg:grid-cols-4 gap-6">
+                <div class="mx-auto max-w-7xl flex flex-col-reverse lg:grid lg:grid-cols-4 gap-4 sm:gap-6">
                     // Left Column - Session Controls & Topic
                     <div class="lg:col-span-1 space-y-6">
 
@@ -271,7 +271,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                     // Right Column - Participants & Voting
                     <div class="lg:col-span-3 space-y-6">
                         // Topic Section - Always show if there are participants
-                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 sm:mb-6 shadow-sm">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
                             {
                                 if !session.current_topic().is_empty() {
