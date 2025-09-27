@@ -53,7 +53,7 @@ FROM alpine:latest as runtime
 RUN apk add --no-cache nginx nginx-mod-http-brotli
 
 # Copy custom nginx config
-COPY config/nginx.conf /etc/nginx/nginx.conf
+COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built assets from builder stage
 COPY --from=builder /app/crates/kiko-frontend/dist /usr/share/nginx/html

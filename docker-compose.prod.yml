@@ -8,8 +8,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./config/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
-      - ./config/nginx-bootstrap.conf:/etc/nginx/nginx-bootstrap.conf:ro
+      - ./config/nginx/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/nginx-bootstrap.conf:/etc/nginx/nginx-bootstrap.conf:ro
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
       - web-root:/var/www/html
