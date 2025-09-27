@@ -271,7 +271,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                     // Right Column - Participants & Voting
                     <div class="lg:col-span-3 space-y-6">
                         // Topic Section - Always show if there are participants
-                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 sm:mb-6 shadow-sm">
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 lg:mb-6 shadow-sm">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
                             {
                                 if !session.current_topic().is_empty() {
