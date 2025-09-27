@@ -13,7 +13,6 @@ use crate::hooks::ConnectionState;
 const CARD_CLASSES: &str = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm";
 const TEXT_PRIMARY: &str = "text-gray-900 dark:text-gray-100";
 const TEXT_SECONDARY: &str = "text-gray-600 dark:text-gray-400";
-// const GRID_LAYOUT: &str = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3";
 
 fn is_point_selected(selected_points: Option<u32>, points: u32) -> bool {
     selected_points
