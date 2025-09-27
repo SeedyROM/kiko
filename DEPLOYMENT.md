@@ -22,7 +22,7 @@ cd kiko
 
 ### 2. Configure Domain
 
-Update the domain configuration in `scripts/ssl-setup.sh`:
+Update the domain configuration in `bin/ssl/ssl-setup`:
 
 ```bash
 # Edit these variables if using a different domain
@@ -36,10 +36,10 @@ Run the SSL setup script to obtain Let's Encrypt certificates:
 
 ```bash
 # For production certificates
-./scripts/ssl-setup.sh
+./bin/ssl/ssl-setup
 
 # For staging/testing certificates (recommended for testing)
-./scripts/ssl-setup.sh staging
+./bin/ssl/ssl-setup staging
 ```
 
 This script will:
@@ -62,10 +62,10 @@ Set up automatic certificate renewal using cron:
 
 ```bash
 # Make the renewal script executable
-chmod +x ./scripts/ssl-renew.sh
+chmod +x ./bin/ssl/ssl-renew
 
 # Add to crontab (runs weekly on Mondays at 3 AM)
-echo "0 3 * * 1 /Users/zack/Workspace/rust/2025/fullstack/kiko/scripts/ssl-renew.sh >> /tmp/ssl-renewal.log 2>&1" | crontab -
+echo "0 3 * * 1 /Users/zack/Workspace/rust/2025/fullstack/kiko/bin/ssl/ssl-renew >> /tmp/ssl-renewal.log 2>&1" | crontab -
 
 # Verify cron job was added
 crontab -l
@@ -78,7 +78,7 @@ crontab -l
 To manually renew certificates:
 
 ```bash
-./scripts/ssl-renew.sh
+./bin/ssl/ssl-renew
 ```
 
 Or run the renewal command directly:

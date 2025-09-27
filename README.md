@@ -79,22 +79,22 @@ Use the convenient build scripts to create and push Docker images:
 
 ```bash
 # Build images locally (defaults to 'sleazyrom' username)
-./bin/build-docker [username]
+./bin/docker/docker-build [username]
 
 # Push images to Docker Hub
-./bin/push-docker [username]
+./bin/docker/docker-push [username]
 
 # Build and push in one command
-./bin/build-and-push [username]
+./bin/docker/docker-build-and-push [username]
 ```
 
 Examples:
 ```bash
 # Build with custom username
-./bin/build-docker myusername
+./bin/docker/docker-build myusername
 
 # Build and push with default username
-./bin/build-and-push
+./bin/docker/docker-build-and-push
 ```
 
 #### Docker Architecture
