@@ -243,7 +243,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
 
                         // Session Details - Compact
                         <div class={CARD_CLASSES}>
-                            <h3 class={classes!("text-lg", "font-semibold", "mb-4", TEXT_PRIMARY)}>{ "Session Details" }</h3>
+                            <h3 class={classes!("text-lg", "font-semibold", "mb-4", "leading-none", TEXT_PRIMARY)}>{ "Session Details" }</h3>
                             <div class="space-y-3 text-sm sm:flex lg:block gap-x-4 justify-between">
                                 <div>
                                     <div class={classes!("block", "mb-1", TEXT_SECONDARY)}>{ "Session ID" }</div>
@@ -272,11 +272,11 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                     <div class="lg:col-span-3 space-y-6">
                         // Topic Section - Always show if there are participants
                         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 lg:mb-6 shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{ "Story Topic" }</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 leading-none">{ "Story Topic" }</h3>
                             {
                                 if !session.current_topic().is_empty() {
                                     html! {
-                                        <div class={format!("bg-blue-50 dark:bg-blue-900/20 {} border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-4 relative group",
+                                        <div class={format!("bg-blue-50 dark:bg-blue-900/20 {} border border-blue-200 dark:border-blue-800 p-4 rounded-lg relative group",
                                             if props.is_joined { "flex justify-between" } else { "" })}>
                                             <p class="text-blue-900 dark:text-blue-300 font-medium pr-8">{ session.current_topic() }</p>
                                             {
@@ -306,7 +306,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                     }
                                 } else {
                                     html! {
-                                        <div class={format!("bg-gray-50 dark:bg-gray-700 {} border border-gray-200 dark:border-gray-600 p-4 rounded-lg mb-4 relative group",
+                                        <div class={format!("bg-gray-50 dark:bg-gray-700 {} border border-gray-200 dark:border-gray-600 p-4 rounded-lg relative group",
                                             if props.is_joined { "flex justify-between" } else { "" })}>
                                             <p class="text-gray-500 dark:text-gray-400 italic pr-8">{ "No topic set yet" }</p>
                                             {
@@ -541,7 +541,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                             if !session.participants().is_empty() {
                                                 html! {
                                                     <div class={if props.is_joined { "border-t pt-6" } else { "" }}>
-                                                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                                        <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 leading-none">
                                                             {
                                                                 if props.is_joined {
                                                                     "Current Estimates"
