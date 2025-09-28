@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Push Docker images for Kiko
-# Usage: ./bin/push-docker [username]
+# Usage: ./bin/docker/docker-push [username]
 
 set -e
 

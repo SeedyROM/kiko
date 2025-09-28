@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build and push Docker images for Kiko
-# Usage: ./bin/build-docker [username]
+# Usage: ./bin/docker/docker-build [username]
 
 set -e
 
