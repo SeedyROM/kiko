@@ -156,25 +156,34 @@ fn setup_routes(app_state: Arc<AppState>) -> Router {
 }
 
 /// Setup CORS layer
-/// This function configures CORS settings based on the environment.
-/// In debug mode, it allows requests from specific local development ports.
-/// In production, it allows all origins (permissive).
+/// This function configures CORS settings based on the KIKO_CORS_ORIGINS environment variable.
+/// The environment variable should contain a comma-separated list of allowed origins.
+///
+/// Example: KIKO_CORS_ORIGINS="https://kikopointer.com,https://www.kikopointer.com"
 fn cors_layer() -> CorsLayer {
-    // if cfg!(debug_assertions) {
-    let dev_ports = vec![3000, 8000, 8080, 8081, 5173];
-    let mut origins = Vec::new();
+    let cors_origins = std::env::var("KIKO_CORS_ORIGINS")
+        .expect("KIKO_CORS_ORIGINS environment variable must be set");
 
-    for port in dev_ports {
-        origins.push(format!("http://localhost:{port}").parse().unwrap());
-        origins.push(format!("http://127.0.0.1:{port}").parse().unwrap());
+    let origins: Vec<_> = cors_origins
+        .split(',')
+        .filter_map(|s| {
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                trimmed.parse().ok()
+            }
+        })
+        .collect();
+
+    if origins.is_empty() {
+        log::warn!("No valid CORS origins configured, using permissive CORS");
+        CorsLayer::permissive()
+    } else {
+        log::info!("CORS configured with {} allowed origins", origins.len());
+        CorsLayer::new()
+            .allow_origin(origins)
+            .allow_headers([header::CONTENT_TYPE])
+            .allow_methods([Method::GET, Method::POST])
     }
-
-    CorsLayer::new()
-        .allow_origin(origins)
-        .allow_headers([header::CONTENT_TYPE])
-        .allow_methods([Method::GET, Method::POST])
-    // } else {
-    //     // Production CORS - replace with specific origins
-    //     CorsLayer::permissive()
-    // }
 }

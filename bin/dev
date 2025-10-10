@@ -345,6 +345,20 @@ echo
 BACKEND_PID=""
 FRONTEND_PID=""
 
+# Set CORS origins for development if not already set
+# Use the configured frontend address plus common development ports
+if [ -z "$KIKO_CORS_ORIGINS" ]; then
+    # Start with the configured frontend address
+    CORS_ORIGINS="$FRONTEND_ADDRESS"
+
+    # Add common development ports for both localhost and 127.0.0.1
+    for port in 3000 8000 8080 8081 5173; do
+        CORS_ORIGINS="$CORS_ORIGINS,http://localhost:$port,http://127.0.0.1:$port"
+    done
+
+    export KIKO_CORS_ORIGINS="$CORS_ORIGINS"
+fi
+
 if [ "$RELEASE_MODE" = true ]; then
     echo "🚀 Starting Kiko release servers..."
     

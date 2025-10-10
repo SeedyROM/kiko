@@ -43,6 +43,8 @@ services:
     environment:
       - RUST_LOG=warn
       - KIKO_BACKEND_BIND=0.0.0.0  # Bind to all interfaces within container
+      - KIKO_CORS_ORIGINS=https://kikopointer.com,https://www.kikopointer.com
+      - KIKO_SESSION_CLEANUP_INTERVAL=60  # Clean up sessions every 60 seconds
     ports: []  # Remove external port exposure - only accessible via nginx proxy
     deploy:
       resources:
