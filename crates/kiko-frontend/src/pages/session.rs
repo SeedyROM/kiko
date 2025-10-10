@@ -385,6 +385,9 @@ fn session_page_inner(props: &SessionProps) -> Html {
                         </div>
                     }
                 } else if let Some(error) = error_msg.as_ref() {
+                    // Log the error for debugging
+                    kiko::log::error!("Session loading error: {}", error);
+
                     html! {
                         <div class="bg-red-50 dark:bg-red-950 border-b-2 border-red-300 dark:border-red-800 p-4 md:p-6">
                             <div class="flex items-start mx-auto max-w-7xl">
@@ -394,14 +397,24 @@ fn session_page_inner(props: &SessionProps) -> Html {
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <h2 class="text-lg font-medium text-red-800 dark:text-red-300 mb-4 leading-none">{ "Error Loading Session" }</h2>
-                                    <p class="text-red-700 dark:text-red-400 mb-4">{ error }</p>
-                                    <button
-                                        class="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-rose-400"
-                                        onclick={refresh_session}
-                                    >
-                                        { "Retry" }
-                                    </button>
+                                    <h2 class="text-lg font-bold italic text-red-800 dark:text-red-300 mb-4 leading-none">{ "Error Loading Session" }</h2>
+                                    <p class="text-sm text-red-700 dark:text-red-400 mb-4">
+                                        { "This session might not exist, or there could be a temporary server issue." }
+                                    </p>
+                                    <div class="flex gap-3">
+                                        <button
+                                            class="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-rose-400"
+                                            onclick={refresh_session}
+                                        >
+                                            { "Retry" }
+                                        </button>
+                                        <a
+                                            href="/"
+                                            class="px-4 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 inline-flex items-center"
+                                        >
+                                            { "Go Home" }
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
