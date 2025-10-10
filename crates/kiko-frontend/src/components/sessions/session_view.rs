@@ -318,7 +318,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                                     };
                                                     html! {
                                                         <button
-                                                            class="p-1.5 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 opacity-0 group-hover:opacity-100"
+                                                            class="p-1.5 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 lg:opacity-0 group-hover:opacity-100"
                                                             onclick={toggle_topic_input}
                                                             title="Edit topic"
                                                         >
@@ -361,7 +361,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                         })
                                     };
                                     html! {
-                                        <div class="flex space-x-2">
+                                        <div class="flex space-x-2 mt-4">
                                             <input
                                                 type="text"
                                                 class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
