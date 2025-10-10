@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+
+echo "🚀 Starting deployment process..."
+
+echo "📥 Pulling latest changes from git..."
+git pull origin main
+
+echo "⏹️  Stopping running services..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+
+echo "🐳 Pulling latest Docker images..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+
+echo "🔨 Building services..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+
+echo "▶️  Starting services..."
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+echo "✅ Deployment complete!"
+echo "📊 Service status:"
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps

@@ -183,7 +183,17 @@ To update to a new version:
    git pull origin main
    ```
 
-2. Rebuild and restart services:
+2. Stop running services:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+   ```
+
+3. Pull latest Docker images:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+   ```
+
+4. Rebuild and restart services:
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.prod.yml build
    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
