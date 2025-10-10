@@ -31,7 +31,28 @@ async fn main() -> Result<(), Report> {
     });
 
     // Setup the routes
-    let app = setup_routes(app_state);
+    let app = setup_routes(app_state.clone());
+
+    // Start background session cleanup task
+    let cleanup_interval_secs = std::env::var("KIKO_SESSION_CLEANUP_INTERVAL")
+        .unwrap_or_else(|_| "60".to_string())
+        .parse::<u64>()
+        .unwrap_or(60);
+
+    log::info!(
+        "Session cleanup task will run every {} seconds",
+        cleanup_interval_secs
+    );
+
+    let cleanup_state = app_state.clone();
+    tokio::spawn(async move {
+        let mut interval =
+            tokio::time::interval(tokio::time::Duration::from_secs(cleanup_interval_secs));
+        loop {
+            interval.tick().await;
+            cleanup_state.sessions.cleanup_sessions().await;
+        }
+    });
 
     // Setup the server
     let port = std::env::var("KIKO_BACKEND_PORT")

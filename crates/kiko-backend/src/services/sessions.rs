@@ -190,6 +190,63 @@ impl SessionServiceInMemory {
             sessions: DashMap::new(),
         }
     }
+
+    /// Cleans up sessions that meet removal criteria.
+    ///
+    /// This method removes sessions that are:
+    /// - Expired (duration has elapsed)
+    /// - Empty (no participants) and older than 1 hour
+    ///
+    /// Returns the number of sessions that were removed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kiko_backend::services::SessionServiceInMemory;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let service = SessionServiceInMemory::new();
+    /// let cleaned = service.cleanup_sessions().await;
+    /// println!("Cleaned up {} sessions", cleaned);
+    /// # }
+    /// ```
+    pub async fn cleanup_sessions(&self) -> usize {
+        let now = std::time::UNIX_EPOCH
+            .elapsed()
+            .expect("System time must be available for session cleanup")
+            .as_secs();
+
+        let session_ids_to_remove: Vec<SessionId> = self
+            .sessions
+            .iter()
+            .filter_map(|entry| {
+                let session = entry.value();
+                let age = now.saturating_sub(session.started());
+                let is_expired = !session.is_active();
+                let is_old_and_empty = session.participants().is_empty() && age >= 3600;
+
+                let should_remove = is_expired || is_old_and_empty;
+
+                if should_remove {
+                    Some(session.id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let count = session_ids_to_remove.len();
+        for session_id in session_ids_to_remove {
+            self.sessions.remove(&session_id);
+        }
+
+        if count > 0 {
+            kiko::log::info!("Cleaned up {} expired or abandoned sessions", count);
+        }
+
+        count
+    }
 }
 
 impl Default for SessionServiceInMemory {
