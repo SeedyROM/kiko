@@ -539,7 +539,7 @@ pub fn session_view(props: &SessionViewProps) -> Html {
                                         {
                                             if !session.participants().is_empty() {
                                                 html! {
-                                                    <div class={if props.is_joined { "border-t border-gray-200 pt-6" } else { "" }}>
+                                                    <div class={if props.is_joined { "border-t border-gray-200 dark:border-gray-600 pt-6" } else { "" }}>
                                                         <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 leading-none">
                                                             {
                                                                 if props.is_joined {
