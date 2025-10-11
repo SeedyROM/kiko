@@ -1,7 +1,7 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::pages::{HomePage, SessionPage};
+use crate::pages::{HomePage, NotFoundPage, SessionPage};
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {
@@ -18,6 +18,6 @@ pub fn switch(route: Route) -> Html {
     match route {
         Route::Home => html! { <HomePage /> },
         Route::Session { id } => html! { <SessionPage id={id} /> },
-        Route::NotFound => html! { <div>{ "404 Not Found" }</div> },
+        Route::NotFound => html! { <NotFoundPage /> },
     }
 }
